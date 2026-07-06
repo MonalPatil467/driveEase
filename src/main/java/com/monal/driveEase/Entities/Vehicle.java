@@ -2,8 +2,7 @@ package com.monal.driveEase.Entities;
 
 
 import com.monal.driveEase.enums.FuelType;
-import com.monal.driveEase.enums.Transmissions;
-import com.monal.driveEase.enums.Transmissions;
+import com.monal.driveEase.enums.Transmission;
 import com.monal.driveEase.enums.VehicleType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -47,7 +46,7 @@ public class Vehicle {
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private Transmissions transmission;
+    private Transmission transmission;
 
     private Integer seatingCapacity;
 

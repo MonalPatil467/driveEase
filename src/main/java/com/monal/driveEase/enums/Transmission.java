@@ -1,6 +1,6 @@
 package com.monal.driveEase.enums;
 
-public enum Transmissions {
+public enum Transmission {
     MANUAL,
     AUTOMATIC
 }
