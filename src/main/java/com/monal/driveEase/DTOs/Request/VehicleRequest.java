@@ -11,6 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class VehicleRequest {
+    private Long id;
     private String brand;
     private String model;
     private String registrationNumber;
@@ -23,5 +24,8 @@ public class VehicleRequest {
     private Double pricePerDay;
     private String location;
     private String description;
+    private Boolean available;
     private String imageUrl;
+
+   // private Long ownerId;
 }
