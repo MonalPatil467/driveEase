@@ -11,6 +11,8 @@ import java.time.LocalDate;
 @Builder
 public class BookingRequest {
     private Long vehicleId;
+
     private LocalDate pickupDate;
+
     private LocalDate returnDate;
 }

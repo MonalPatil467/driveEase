@@ -10,9 +10,10 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 public class PaymentResponse {
-    private Long id;
+   // private Long id;
     private String transactionId;
     private Double amount;
     private PaymentMethod paymentMethod;
     private PaymentStatus paymentStatus;
+    private Long bookingId;
 }
