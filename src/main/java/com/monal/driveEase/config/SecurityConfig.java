@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -15,43 +16,43 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @RequiredArgsConstructor
+@EnableMethodSecurity
 public class SecurityConfig {
-private final JWTAuthenticationFilter jwtAuthenticationFilter;
 
-@Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-    http
-            .csrf(csrf-> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth-> auth.requestMatchers(
-                            "/auth/**",
-                            "/swagger-ui/**",
-                            "/v3/api-docs/**"
-                    ).permitAll()
+    private final JWTAuthenticationFilter jwtAuthenticationFilter;
 
-                    .requestMatchers("/admin/**")
-                    .hasRole("ADMIN")
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
-                    .requestMatchers("/owner/**")
-                    .hasRole("OWNER")
+        http
+                .csrf(csrf -> csrf.disable())
 
-                    .requestMatchers("/customer/**")
-                    .hasRole("CUSTOMER")
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
-                    .anyRequest()
-                    .authenticated()
-            )
+                .authorizeHttpRequests(auth -> auth
 
-            .addFilterBefore(jwtAuthenticationFilter,
-                    UsernamePasswordAuthenticationFilter.class);
+                        .requestMatchers(
+                                "/api/auth/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**"
+                        ).permitAll()
 
-    return http.build();
+                        .anyRequest().authenticated()
+                )
 
-}
-@Bean
-    public PasswordEncoder passwordEncoder(){
-    return new BCryptPasswordEncoder();
-}
+                .addFilterBefore(jwtAuthenticationFilter,
+                        UsernamePasswordAuthenticationFilter.class);
+
+        return http.build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
     @Bean
     public AuthenticationManager authenticationManager(
             AuthenticationConfiguration configuration) throws Exception {
