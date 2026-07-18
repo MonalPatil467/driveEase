@@ -11,6 +11,8 @@ import com.monal.driveEase.Repositories.VehicleRepository;
 import com.monal.driveEase.Services.BookingService;
 import com.monal.driveEase.enums.BookingStatus;
 import com.monal.driveEase.enums.Role;
+import com.monal.driveEase.exception.BadRequestException;
+import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.mappers.BookingMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -37,17 +39,17 @@ public class BookingServiceImpl implements BookingService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Customer not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Customer not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can book vehicles.");
+            throw new BadRequestException("Only customers can book vehicles.");
         }
 
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
-
+              //  .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
         if (request.getPickupDate().isAfter(request.getReturnDate())) {
-            throw new RuntimeException("Invalid booking dates.");
+            throw new BadRequestException("Invalid booking dates.");
         }
 
         List<Booking> existingBookings =
@@ -61,7 +63,7 @@ public class BookingServiceImpl implements BookingService {
             if (overlap &&
                     booking.getBookingStatus() != BookingStatus.CANCELLED) {
 
-                throw new RuntimeException("Vehicle is already booked for these dates.");
+                throw new BadRequestException("Vehicle is already booked for these dates.");
             }
         }
 
@@ -87,7 +89,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponse getBookingById(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         return bookingMapper.toResponse(booking);
     }
@@ -101,10 +103,10 @@ public class BookingServiceImpl implements BookingService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can view their bookings.");
+            throw new BadRequestException("Only customers can view their bookings.");
         }
 
         List<Booking> bookings = bookingRepository.findByCustomerId(customer.getId());
@@ -123,10 +125,10 @@ public class BookingServiceImpl implements BookingService {
         String email = authentication.getName();
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (user.getRole() != Role.ADMIN) {
-            throw new RuntimeException("Only admin can view all bookings.");
+            throw new BadRequestException("Only admin can view all bookings.");
         }
 
         List<Booking> bookings = bookingRepository.findAll();
@@ -145,18 +147,18 @@ public class BookingServiceImpl implements BookingService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can cancel bookings.");
+            throw new BadRequestException("Only customers can cancel bookings.");
         }
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new RuntimeException("Booking not found"));
         if (!booking.getCustomer().getId().equals(customer.getId())) {
-            throw new RuntimeException("You can only cancel your own bookings.");
+            throw new BadRequestException("You can only cancel your own bookings.");
         }
         if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
-            throw new RuntimeException("Booking is already cancelled.");
+            throw new BadRequestException("Booking is already cancelled.");
         }
 
         booking.setBookingStatus(BookingStatus.CANCELLED);

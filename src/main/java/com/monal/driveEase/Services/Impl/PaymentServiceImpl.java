@@ -12,6 +12,8 @@ import com.monal.driveEase.Services.PaymentService;
 import com.monal.driveEase.enums.BookingStatus;
 import com.monal.driveEase.enums.PaymentStatus;
 import com.monal.driveEase.enums.Role;
+import com.monal.driveEase.exception.BadRequestException;
+import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.mappers.PaymentMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -36,21 +38,21 @@ public class PaymentServiceImpl implements PaymentService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can make payments.");
+            throw new BadRequestException("Only customers can make payments.");
         }
 
         Booking booking = bookingRepository.findById(request.getBookingId())
-                .orElseThrow(() -> new RuntimeException("Booking not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (!booking.getCustomer().getId().equals(customer.getId())) {
-            throw new RuntimeException("You can only pay for your own booking.");
+            throw new BadRequestException("You can only pay for your own booking.");
         }
 
         if (booking.getPayment() != null) {
-            throw new RuntimeException("Payment already completed.");
+            throw new BadRequestException("Payment already completed.");
         }
 
         Payment payment = Payment.builder()
@@ -71,7 +73,7 @@ public class PaymentServiceImpl implements PaymentService {
     @Override
     public PaymentResponse getPaymentById(Long id) {
         Payment payment = paymentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Payment not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
         return paymentMapper.toResponse(payment);
     }
@@ -83,10 +85,10 @@ public class PaymentServiceImpl implements PaymentService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can view payments.");
+            throw new BadRequestException("Only customers can view payments.");
         }
 
         return paymentRepository.findByBookingCustomerId(customer.getId())

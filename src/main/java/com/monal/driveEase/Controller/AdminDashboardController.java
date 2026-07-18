@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class AdminDashboardController {
     private final AdminDashboardService adminDashboardService;
-    @GetMapping("/dashboard")
+    @GetMapping("/admin/dashboard")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<AdminDashboardResponse> getDashboard() {
 

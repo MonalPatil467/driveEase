@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 public class OwnerDashboardController {
     private final OwnerDashboardService ownerDashboardService;
-    @GetMapping("/dashboard")
+    @GetMapping("/owner/dashboard")
     @PreAuthorize("hasRole('OWNER')")
     public ResponseEntity<OwnerDashboardResponse> getDashboard() {
 

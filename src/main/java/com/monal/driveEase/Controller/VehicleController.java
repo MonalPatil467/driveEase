@@ -1,6 +1,7 @@
 package com.monal.driveEase.Controller;
 
 import com.monal.driveEase.DTOs.Request.VehicleRequest;
+import com.monal.driveEase.DTOs.Response.VehicleAvailabilityResponse;
 import com.monal.driveEase.DTOs.Response.VehicleResponse;
 import com.monal.driveEase.Services.VehicleService;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,15 @@ public class VehicleController {
     @PostMapping
     public ResponseEntity<VehicleResponse> addVehicle(@RequestBody VehicleRequest request) {
         return new ResponseEntity<>(vehicleService.addVehicle(request), HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}/availability")
+    public ResponseEntity<List<VehicleAvailabilityResponse>>
+    getAvailability(@PathVariable Long id) {
+
+        return ResponseEntity.ok(
+                vehicleService.getVehicleAvailability(id)
+        );
     }
 
     @PreAuthorize("hasRole('OWNER')")

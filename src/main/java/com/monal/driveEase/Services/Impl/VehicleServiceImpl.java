@@ -2,12 +2,18 @@ package com.monal.driveEase.Services.Impl;
 
 import com.monal.driveEase.DTOs.Request.VehicleFilterRequest;
 import com.monal.driveEase.DTOs.Request.VehicleRequest;
+import com.monal.driveEase.DTOs.Response.VehicleAvailabilityResponse;
 import com.monal.driveEase.DTOs.Response.VehicleResponse;
+import com.monal.driveEase.Entities.Booking;
 import com.monal.driveEase.Entities.User;
 import com.monal.driveEase.Entities.Vehicle;
+import com.monal.driveEase.Repositories.BookingRepository;
 import com.monal.driveEase.Repositories.UserRepository;
 import com.monal.driveEase.Repositories.VehicleRepository;
 import com.monal.driveEase.Services.VehicleService;
+import com.monal.driveEase.enums.BookingStatus;
+import com.monal.driveEase.exception.ResourceNotFoundException;
+import com.monal.driveEase.exception.UnauthorizedException;
 import com.monal.driveEase.mappers.VehicleMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,6 +33,7 @@ public class VehicleServiceImpl implements VehicleService {
     private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
     private final VehicleMapper vehicleMapper;
+    private final BookingRepository bookingRepository;
     @Override
     public VehicleResponse addVehicle(VehicleRequest request) {
         Authentication authentication = SecurityContextHolder
@@ -39,7 +46,8 @@ public class VehicleServiceImpl implements VehicleService {
                 .orElseThrow(() -> new RuntimeException("Owner not found"));
 
         if (owner.getRole() != Role.OWNER) {
-            throw new RuntimeException("Only owners can add vehicles.");
+            throw new UnauthorizedException("Only owners can add vehicles.");
+           // throw new RuntimeException("Only owners can add vehicles.");
         }
 
         Vehicle vehicle = vehicleMapper.toEntity(request);
@@ -55,7 +63,8 @@ public class VehicleServiceImpl implements VehicleService {
     @Override
     public VehicleResponse updateVehicle(Long id, VehicleRequest request) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+               // .orElseThrow(() -> new RuntimeException("Vehicle not found"));
 
         vehicle.setBrand(request.getBrand());
         vehicle.setModel(request.getModel());
@@ -93,9 +102,32 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    public List<VehicleAvailabilityResponse> getVehicleAvailability(Long vehicleId) {
+
+        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+                .orElseThrow(() ->
+                        new RuntimeException("Vehicle not found"));
+
+        List<Booking> bookings =
+                bookingRepository.findByVehicleIdAndBookingStatus(
+                        vehicle.getId(),
+                        BookingStatus.CONFIRMED
+                );
+
+        return bookings.stream()
+                .map(booking ->
+                        VehicleAvailabilityResponse.builder()
+                                .pickupDate(booking.getPickupDate())
+                                .returnDate(booking.getReturnDate())
+                                .build())
+                .toList();
+    }
+
+    @Override
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                //.orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
 
         vehicleRepository.delete(vehicle);
     }

@@ -2,6 +2,7 @@ package com.monal.driveEase.Services;
 
 import com.monal.driveEase.DTOs.Request.VehicleFilterRequest;
 import com.monal.driveEase.DTOs.Request.VehicleRequest;
+import com.monal.driveEase.DTOs.Response.VehicleAvailabilityResponse;
 import com.monal.driveEase.DTOs.Response.VehicleResponse;
 import org.springframework.data.domain.Page;
 
@@ -22,4 +23,6 @@ public interface VehicleService {
 
     List<VehicleResponse> searchVehicles(String location);
     //List<VehicleResponse> filterVehicles(VehicleFilterRequest request);
+
+    List<VehicleAvailabilityResponse> getVehicleAvailability(Long vehicleId);
 }

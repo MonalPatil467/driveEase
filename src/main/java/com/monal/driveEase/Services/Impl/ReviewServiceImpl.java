@@ -13,6 +13,8 @@ import com.monal.driveEase.Repositories.VehicleRepository;
 import com.monal.driveEase.Services.ReviewService;
 import com.monal.driveEase.enums.BookingStatus;
 import com.monal.driveEase.enums.Role;
+import com.monal.driveEase.exception.BadRequestException;
+import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.mappers.ReviewMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -38,25 +40,25 @@ public class ReviewServiceImpl implements ReviewService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new RuntimeException("Only customers can add reviews.");
+            throw new BadRequestException("Only customers can add reviews.");
         }
 
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
 
         Booking booking = bookingRepository
                 .findByCustomerIdAndVehicleId(customer.getId(), vehicle.getId())
-                .orElseThrow(() -> new RuntimeException("You must book this vehicle before reviewing."));
+                .orElseThrow(() -> new BadRequestException("You must book this vehicle before reviewing."));
 
         if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
-            throw new RuntimeException("Only confirmed bookings can be reviewed.");
+            throw new BadRequestException("Only confirmed bookings can be reviewed.");
         }
 
         if (reviewRepository.existsByCustomerIdAndVehicleId(customer.getId(), vehicle.getId())) {
-            throw new RuntimeException("You have already reviewed this vehicle.");
+            throw new BadRequestException("You have already reviewed this vehicle.");
         }
 
         Review review = reviewMapper.toEntity(request);
@@ -72,7 +74,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public ReviewResponse updateReview(Long reviewId, ReviewRequest request) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
 
         review.setRating(request.getRating());
         review.setComment(request.getComment());
@@ -85,7 +87,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public void deleteReview(Long reviewId) {
         Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new RuntimeException("Review not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
 
         reviewRepository.delete(review);
     }
@@ -93,7 +95,7 @@ public class ReviewServiceImpl implements ReviewService {
     @Override
     public List<ReviewResponse> getReviewsByVehicle(Long vehicleId) {
         Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
 
         return reviewRepository.findByVehicleId(vehicle.getId())
                 .stream()
@@ -108,7 +110,7 @@ public class ReviewServiceImpl implements ReviewService {
         String email = authentication.getName();
 
         User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return reviewRepository.findByCustomerId(customer.getId())
                 .stream()

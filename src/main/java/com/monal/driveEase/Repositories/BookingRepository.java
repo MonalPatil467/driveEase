@@ -2,6 +2,7 @@ package com.monal.driveEase.Repositories;
 
 import com.monal.driveEase.Entities.Booking;
 import com.monal.driveEase.Entities.User;
+import com.monal.driveEase.enums.BookingStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -17,4 +18,8 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
     Optional<Booking> findByCustomerIdAndVehicleId(Long customerId, Long vehicleId);
 
     long countByVehicleOwner(User owner);
+
+    List<Booking> findByVehicleIdAndBookingStatus(
+            Long vehicleId,
+            BookingStatus bookingStatus);
 }

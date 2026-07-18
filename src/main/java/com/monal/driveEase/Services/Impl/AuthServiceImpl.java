@@ -7,6 +7,8 @@ import com.monal.driveEase.Entities.User;
 import com.monal.driveEase.Repositories.UserRepository;
 import com.monal.driveEase.Services.AuthService;
 import com.monal.driveEase.enums.Role;
+import com.monal.driveEase.exception.BadRequestException;
+import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -26,11 +28,13 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+          //  throw new RuntimeException("Email already exists");
+            throw new BadRequestException("Email already exists");
         }
 
         if (request.getRole() == Role.ADMIN) {
-            throw new RuntimeException("Admin registration is not allowed.");
+           // throw new RuntimeException("Admin registration is not allowed.");
+            throw new BadRequestException("Admin registration is not allowed");
         }
         User user = User.builder()
                 .firstName(request.getFirstName())
@@ -63,7 +67,8 @@ public class AuthServiceImpl implements AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                //.orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         String token = jwtService.generateToken(user);
 

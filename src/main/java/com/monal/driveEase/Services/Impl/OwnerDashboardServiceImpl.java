@@ -4,6 +4,7 @@ import com.monal.driveEase.DTOs.Response.OwnerDashboardResponse;
 import com.monal.driveEase.Entities.User;
 import com.monal.driveEase.Repositories.*;
 import com.monal.driveEase.Services.OwnerDashboardService;
+import com.monal.driveEase.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -23,7 +24,7 @@ public class OwnerDashboardServiceImpl implements OwnerDashboardService {
                 SecurityContextHolder.getContext().getAuthentication();
 
         User owner = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
 
         return OwnerDashboardResponse.builder()
                 .totalVehicles(vehicleRepository.countByOwner(owner))
