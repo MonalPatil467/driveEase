@@ -1,6 +1,7 @@
 package com.monal.driveEase.Repositories;
 
 import com.monal.driveEase.Entities.Booking;
+import com.monal.driveEase.Entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -14,4 +15,6 @@ public interface BookingRepository extends JpaRepository<Booking,Long> {
     List<Booking> findByCustomerId(Long id);
 
     Optional<Booking> findByCustomerIdAndVehicleId(Long customerId, Long vehicleId);
+
+    long countByVehicleOwner(User owner);
 }

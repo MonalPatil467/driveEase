@@ -1,5 +1,6 @@
 package com.monal.driveEase.Services.Impl;
 
+import com.monal.driveEase.DTOs.Request.VehicleFilterRequest;
 import com.monal.driveEase.DTOs.Request.VehicleRequest;
 import com.monal.driveEase.DTOs.Response.VehicleResponse;
 import com.monal.driveEase.Entities.User;
@@ -9,6 +10,10 @@ import com.monal.driveEase.Repositories.VehicleRepository;
 import com.monal.driveEase.Services.VehicleService;
 import com.monal.driveEase.mappers.VehicleMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -72,6 +77,22 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    public List<VehicleResponse> filterVehicles(VehicleFilterRequest request) {
+
+        return vehicleRepository.filterVehicles(
+                        request.getLocation(),
+                        request.getVehicleType(),
+                        request.getFuelType(),
+                        request.getTransmission(),
+                        request.getMinPrice(),
+                        request.getMaxPrice()
+                )
+                .stream()
+                .map(vehicleMapper::toResponse)
+                .toList();
+    }
+
+    @Override
     public void deleteVehicle(Long id) {
         Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Vehicle not found"));
@@ -86,11 +107,16 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public List<VehicleResponse> getAllVehicles() {
-        return vehicleRepository.findAll()
-                .stream()
-                .map(vehicleMapper::toResponse)
-                .toList();
+    public Page<VehicleResponse> getAllVehicles(int page, int size, String sortBy, String direction) {
+
+        Sort sort = direction.equalsIgnoreCase("desc")
+                ? Sort.by(sortBy).descending()
+                : Sort.by(sortBy).ascending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        return vehicleRepository.findAll(pageable)
+                .map(vehicleMapper::toResponse);
     }
 
     @Override

@@ -4,6 +4,8 @@ import com.monal.driveEase.DTOs.Request.VehicleRequest;
 import com.monal.driveEase.DTOs.Response.VehicleResponse;
 import com.monal.driveEase.Services.VehicleService;
 import lombok.RequiredArgsConstructor;
+import com.monal.driveEase.DTOs.Request.VehicleFilterRequest;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -44,9 +46,29 @@ public class VehicleController {
         return ResponseEntity.ok(vehicleService.getVehicleById(id));
     }
 
+    @PostMapping("/filter")
+    public ResponseEntity<List<VehicleResponse>> filterVehicles(
+            @RequestBody VehicleFilterRequest request) {
+
+        return ResponseEntity.ok(
+                vehicleService.filterVehicles(request)
+        );
+    }
+
     @GetMapping
-    public ResponseEntity<List<VehicleResponse>> getAllVehicles() {
-        return ResponseEntity.ok(vehicleService.getAllVehicles());
+    public ResponseEntity<Page<VehicleResponse>> getAllVehicles(
+
+            @RequestParam(defaultValue = "0") int page,
+
+            @RequestParam(defaultValue = "5") int size,
+
+            @RequestParam(defaultValue = "brand") String sortBy,
+
+            @RequestParam(defaultValue = "asc") String direction) {
+
+        return ResponseEntity.ok(
+                vehicleService.getAllVehicles(page, size, sortBy, direction)
+        );
     }
 
     @GetMapping("/search")
