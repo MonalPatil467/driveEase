@@ -1,48 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>DriveEase | Home</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
 <body>
+
+<!-- ================= NAVBAR ================= -->
 
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow">
 
     <div class="container">
 
-        <a class="navbar-brand fw-bold text-white" href="#">
+        <a class="navbar-brand fw-bold" href="#">
             🚗 DriveEase
         </a>
 
         <button class="navbar-toggler"
                 type="button"
                 data-bs-toggle="collapse"
-                data-bs-target="#navbar">
+                data-bs-target="#navbarNav">
 
             <span class="navbar-toggler-icon"></span>
 
         </button>
 
-        <div class="collapse navbar-collapse" id="navbar">
+        <div class="collapse navbar-collapse"
+             id="navbarNav">
 
             <ul class="navbar-nav ms-auto">
 
                 <li class="nav-item">
-                    <a class="nav-link active" href="index.html">
+
+                    <a class="nav-link active"
+                       href="index.html">
+
                         Home
+
                     </a>
+
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="vehicles.html">
+
+                    <a class="nav-link"
+                       href="vehicles.html">
+
                         Vehicles
+
                     </a>
+
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="my-bookings.html">
+
+                    <a class="nav-link"
+                       href="my-bookings.html">
+
                         My Bookings
+
                     </a>
+
                 </li>
 
                 <li class="nav-item">
-                    <a class="nav-link" href="login.html">
-                        Login
+
+                    <a class="nav-link"
+                       href="owner-dashboard.html">
+
+                        Owner
+
                     </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                       href="admin-dashboard.html">
+
+                        Admin
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <button
+                            id="logoutBtn"
+                            class="btn btn-outline-light ms-3">
+
+                        Logout
+
+                    </button>
+
                 </li>
 
             </ul>
@@ -53,22 +118,27 @@
 
 </nav>
 
+<!-- ================= HERO ================= -->
+
 <section class="hero">
 
     <div class="container text-center">
 
         <h1>
-            Rent Your Perfect Vehicle
+
+            Find Your Perfect Ride
+
         </h1>
 
-        <p class="lead mt-3">
+        <p class="lead mt-4">
 
-            Choose from hundreds of cars, bikes and SUVs across India.
+            Rent Cars, SUVs and Bikes anytime,
+            anywhere with DriveEase.
 
         </p>
 
         <a href="vehicles.html"
-           class="btn btn-lg btn-secondary mt-3">
+           class="btn btn-secondary btn-lg mt-3">
 
             Explore Vehicles
 
@@ -77,3 +147,218 @@
     </div>
 
 </section>
+
+<!-- ================= SEARCH ================= -->
+
+<section class="container mt-5">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-8">
+
+            <div class="card search-card">
+
+                <div class="card-body">
+
+                    <h3 class="text-center mb-4">
+
+                        Search Vehicles
+
+                    </h3>
+
+                    <div class="row">
+
+                        <div class="col-md-9">
+
+                            <input
+                                    type="text"
+                                    id="location"
+                                    class="form-control"
+                                    placeholder="Enter Location">
+
+                        </div>
+
+                        <div class="col-md-3">
+
+                            <button
+                                    id="searchBtn"
+                                    class="btn btn-secondary w-100">
+
+                                Search
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= FEATURED VEHICLES ================= -->
+
+<section class="container mt-5">
+
+    <h2 class="text-center mb-4">
+
+        Featured Vehicles
+
+    </h2>
+
+    <div
+            id="vehicleContainer"
+            class="row g-4">
+
+        <!-- Loaded from JavaScript -->
+
+    </div>
+
+</section>
+
+<!-- ================= WHY CHOOSE US ================= -->
+
+<section class="container mt-5 mb-5">
+
+    <h2 class="text-center mb-5">
+
+        Why Choose DriveEase?
+
+    </h2>
+
+    <div class="row">
+
+        <div class="col-md-4">
+
+            <div class="card info-card">
+
+                <div class="card-body text-center">
+
+                    <h3>
+
+                        🚘
+
+                    </h3>
+
+                    <h4>
+
+                        Verified Owners
+
+                    </h4>
+
+                    <p>
+
+                        Every vehicle owner is verified before listing
+                        vehicles on the platform.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card info-card">
+
+                <div class="card-body text-center">
+
+                    <h3>
+
+                        💰
+
+                    </h3>
+
+                    <h4>
+
+                        Affordable Pricing
+
+                    </h4>
+
+                    <p>
+
+                        Transparent pricing with no hidden charges.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="col-md-4">
+
+            <div class="card info-card">
+
+                <div class="card-body text-center">
+
+                    <h3>
+
+                        ⭐
+
+                    </h3>
+
+                    <h4>
+
+                        Highly Rated
+
+                    </h4>
+
+                    <p>
+
+                        Customer reviews help you choose the best vehicles.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</section>
+
+<!-- ================= FOOTER ================= -->
+
+<footer class="bg-dark text-center text-white p-4">
+
+    <h4>
+
+        DriveEase
+
+    </h4>
+
+    <p>
+
+        Self Drive Vehicle Rental Platform
+
+    </p>
+
+    <hr>
+
+    <p>
+
+        © 2026 DriveEase. All Rights Reserved.
+
+    </p>
+
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script src="js/index.js"></script>
+
+</body>
+
+</html>
