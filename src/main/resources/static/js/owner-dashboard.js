@@ -1,148 +1,111 @@
+const API = "http://localhost:8080/api/vehicles/owner";
+
 const token = localStorage.getItem("token");
 
-const dashboardAPI = "http://localhost:8080/owner/dashboard";
+const vehicleTable = document.getElementById("vehicleTable");
 
-const vehicleAPI = "http://localhost:8080/api/vehicles";
+const message = document.getElementById("message");
 
-document.addEventListener("DOMContentLoaded", () => {
-
-    loadDashboard();
-
-    loadVehicles();
-
-});
-
-async function loadDashboard() {
-
-    const response = await fetch(dashboardAPI, {
-
-        headers: {
-
-            Authorization: "Bearer " + token
-
-        }
-
-    });
-
-    const dashboard = await response.json();
-
-    document.getElementById("vehicleCount").innerHTML =
-        dashboard.totalVehicles;
-
-    document.getElementById("bookingCount").innerHTML =
-        dashboard.totalBookings;
-
-    document.getElementById("revenue").innerHTML =
-        "₹" + dashboard.totalRevenue;
-
-    document.getElementById("rating").innerHTML =
-        dashboard.averageRating;
-
-}
+loadVehicles();
 
 async function loadVehicles() {
 
-    const response = await fetch(vehicleAPI, {
+    try {
 
-        headers: {
+        const response = await fetch(API, {
 
-            Authorization: "Bearer " + token
+            headers: {
+
+                "Authorization": "Bearer " + token
+
+            }
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error("Unable to load vehicles.");
 
         }
 
-    });
+        const vehicles = await response.json();
 
-    const vehicles = await response.json();
+        vehicleTable.innerHTML = "";
 
-    const container = document.getElementById("vehicleContainer");
+        if (vehicles.length === 0) {
 
-    container.innerHTML = "";
+            message.innerHTML = "No vehicles found.";
 
-    vehicles.forEach(vehicle => {
+            return;
 
-        container.innerHTML += `
+        }
 
-        <div class="col-md-4 mb-4">
+        vehicles.forEach(vehicle => {
 
-            <div class="card bg-dark text-white h-100">
+            vehicleTable.innerHTML += `
 
-                <img src="${vehicle.imageUrl}"
-                     class="card-img-top"
-                     style="height:220px;object-fit:cover;">
+                <tr>
 
-                <div class="card-body">
+                    <td>
 
-                    <h4>${vehicle.brand} ${vehicle.model}</h4>
+                        ${vehicle.id}
 
-                    <p>${vehicle.location}</p>
+                    </td>
 
-                    <p>₹${vehicle.pricePerDay}/Day</p>
+                    <td>
 
-                    <button
-                        class="btn btn-secondary w-100 mb-2"
-                        onclick="editVehicle(${vehicle.id})">
+                        ${vehicle.brand}
 
-                        Edit
+                    </td>
 
-                    </button>
+                    <td>
 
-                    <button
-                        class="btn btn-danger w-100"
-                        onclick="deleteVehicle(${vehicle.id})">
+                        ${vehicle.model}
 
-                        Delete
+                    </td>
 
-                    </button>
+                    <td>
 
-                </div>
+                        ${vehicle.vehicleType}
 
-            </div>
+                    </td>
 
-        </div>
+                    <td>
 
-        `;
+                        ₹${vehicle.pricePerDay}
 
-    });
+                    </td>
 
-}
+                    <td>
 
-function editVehicle(id){
+                        ${vehicle.availabilityStatus}
 
-    window.location.href =
-        "edit-vehicle.html?id=" + id;
+                    </td>
 
-}
+                    <td>
 
-async function deleteVehicle(id){
+                        <a href="edit-vehicle.html?id=${vehicle.id}"
 
-    if(!confirm("Delete Vehicle?")){
+                           class="btn btn-warning btn-sm">
 
-        return;
+                            Edit
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
 
     }
 
-    await fetch(vehicleAPI + "/" + id,{
+    catch (error) {
 
-        method:"DELETE",
+        message.innerHTML = error.message;
 
-        headers:{
-
-            Authorization:"Bearer "+token
-
-        }
-
-    });
-
-    loadVehicles();
-
-    loadDashboard();
-
-}
-
-function logout(){
-
-    localStorage.removeItem("token");
-
-    window.location.href="login.html";
+    }
 
 }

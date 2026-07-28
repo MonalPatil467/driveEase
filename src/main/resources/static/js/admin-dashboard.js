@@ -1,72 +1,76 @@
+const API = "http://localhost:8080/api/admin";
+
 const token = localStorage.getItem("token");
 
-const dashboardAPI = "http://localhost:8080/admin/dashboard";
+const userTable = document.getElementById("userTable");
 
-const usersAPI = "http://localhost:8080/api/users";
+const vehicleTable = document.getElementById("vehicleTable");
 
-window.onload = () => {
+const bookingTable = document.getElementById("bookingTable");
 
-    loadDashboard();
+const message = document.getElementById("message");
 
-    loadUsers();
-
-};
+loadDashboard();
 
 async function loadDashboard() {
 
-    const response = await fetch(dashboardAPI, {
+    try {
 
-        headers: {
+        const response = await fetch(API + "/dashboard", {
 
-            Authorization: "Bearer " + token
+            headers: {
+
+                "Authorization": "Bearer " + token
+
+            }
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error("Unable to load dashboard.");
 
         }
 
-    });
+        const dashboard = await response.json();
 
-    const data = await response.json();
+        loadUsers(dashboard.users);
 
-    users.innerHTML = data.totalUsers;
+        loadVehicles(dashboard.vehicles);
 
-    vehicles.innerHTML = data.totalVehicles;
+        loadBookings(dashboard.bookings);
 
-    bookings.innerHTML = data.totalBookings;
+    }
 
-    revenue.innerHTML = "₹" + data.totalRevenue;
+    catch (error) {
+
+        message.className = "error";
+
+        message.innerHTML = error.message;
+
+    }
 
 }
 
-async function loadUsers() {
-
-    const response = await fetch(usersAPI, {
-
-        headers: {
-
-            Authorization: "Bearer " + token
-
-        }
-
-    });
-
-    const list = await response.json();
+function loadUsers(users) {
 
     userTable.innerHTML = "";
 
-    list.forEach(user => {
+    users.forEach(user => {
 
         userTable.innerHTML += `
 
-        <tr>
+            <tr>
 
-            <td>${user.id}</td>
+                <td>${user.id}</td>
 
-            <td>${user.name}</td>
+                <td>${user.firstName} ${user.lastName}</td>
 
-            <td>${user.email}</td>
+                <td>${user.email}</td>
 
-            <td>${user.role}</td>
+                <td>${user.role}</td>
 
-        </tr>
+            </tr>
 
         `;
 
@@ -74,10 +78,60 @@ async function loadUsers() {
 
 }
 
-function logout(){
+function loadVehicles(vehicles) {
 
-    localStorage.removeItem("token");
+    vehicleTable.innerHTML = "";
 
-    window.location.href="login.html";
+    vehicles.forEach(vehicle => {
+
+        vehicleTable.innerHTML += `
+
+            <tr>
+
+                <td>${vehicle.id}</td>
+
+                <td>${vehicle.brand}</td>
+
+                <td>${vehicle.model}</td>
+
+                <td>${vehicle.vehicleType}</td>
+
+                <td>${vehicle.availabilityStatus}</td>
+
+            </tr>
+
+        `;
+
+    });
+
+}
+
+function loadBookings(bookings) {
+
+    bookingTable.innerHTML = "";
+
+    bookings.forEach(booking => {
+
+        bookingTable.innerHTML += `
+
+            <tr>
+
+                <td>${booking.id}</td>
+
+                <td>${booking.user.firstName}</td>
+
+                <td>${booking.vehicle.brand}</td>
+
+                <td>${booking.pickupDate}</td>
+
+                <td>${booking.returnDate}</td>
+
+                <td>${booking.bookingStatus}</td>
+
+            </tr>
+
+        `;
+
+    });
 
 }

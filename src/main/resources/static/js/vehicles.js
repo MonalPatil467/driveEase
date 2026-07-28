@@ -1,23 +1,26 @@
-const API_URL = "http://localhost:8080/api/vehicles";
+const API = "http://localhost:8080/api/vehicles";
 
-let currentPage = 0;
-const pageSize = 6;
+const vehicleContainer = document.getElementById("vehicleContainer");
 
-document.addEventListener("DOMContentLoaded", () => {
+const searchBtn = document.getElementById("searchBtn");
 
-    loadVehicles();
+const locationInput = document.getElementById("location");
 
-});
+const vehicleTypeInput = document.getElementById("vehicleType");
+
+loadVehicles();
+
+searchBtn.addEventListener("click", searchVehicles);
 
 async function loadVehicles() {
 
     try {
 
-        const response = await fetch(API_URL);
+        const response = await fetch(API);
 
         if (!response.ok) {
 
-            throw new Error();
+            throw new Error("Unable to load vehicles.");
 
         }
 
@@ -27,13 +30,21 @@ async function loadVehicles() {
 
     }
 
-    catch {
+    catch (error) {
 
-        document.getElementById("vehicleContainer").innerHTML =
+        vehicleContainer.innerHTML = `
 
-            `<h3 class="text-danger text-center">
-                Unable to load vehicles.
-            </h3>`;
+            <div class="col-12">
+
+                <div class="alert alert-danger">
+
+                    ${error.message}
+
+                </div>
+
+            </div>
+
+        `;
 
     }
 
@@ -41,172 +52,140 @@ async function loadVehicles() {
 
 function displayVehicles(vehicles) {
 
-    const container = document.getElementById("vehicleContainer");
+    vehicleContainer.innerHTML = "";
 
-    container.innerHTML = "";
+    if (vehicles.length === 0) {
 
-    const start = currentPage * pageSize;
+        vehicleContainer.innerHTML = `
 
-    const end = start + pageSize;
+            <div class="col-12 text-center">
 
-    const pageVehicles = vehicles.slice(start, end);
+                <h4>No Vehicles Found</h4>
 
-    if (pageVehicles.length === 0) {
+            </div>
 
-        container.innerHTML =
-
-            `<h3 class="text-danger text-center">
-                No Vehicles Found
-            </h3>`;
+        `;
 
         return;
 
     }
 
-    pageVehicles.forEach(vehicle => {
+    vehicles.forEach(vehicle => {
 
-        container.innerHTML += `
+        vehicleContainer.innerHTML += `
 
-        <div class="col-md-4">
+            <div class="col-lg-4 col-md-6 mb-4">
 
-            <div class="card vehicle-card h-100">
+                <div class="card vehicle-card h-100">
 
-                <img src="${vehicle.imageUrl}"
-                     class="card-img-top"
-                     alt="Vehicle">
+                    <img src="${vehicle.imageUrl}"
+                         class="card-img-top"
+                         alt="${vehicle.brand}">
 
-                <div class="card-body">
+                    <div class="card-body">
 
-                    <h5>
+                        <h5 class="card-title">
 
-                        ${vehicle.brand} ${vehicle.model}
+                            ${vehicle.brand} ${vehicle.model}
 
-                    </h5>
+                        </h5>
 
-                    <p>
+                        <p>
 
-                        <strong>Type :</strong>
+                            <strong>Type:</strong>
 
-                        ${vehicle.vehicleType}
+                            ${vehicle.vehicleType}
 
-                    </p>
+                        </p>
 
-                    <p>
+                        <p>
 
-                        <strong>Fuel :</strong>
+                            <strong>Fuel:</strong>
 
-                        ${vehicle.fuelType}
+                            ${vehicle.fuelType}
 
-                    </p>
+                        </p>
 
-                    <p>
+                        <p>
 
-                        <strong>Transmission :</strong>
+                            <strong>Location:</strong>
 
-                        ${vehicle.transmission}
+                            ${vehicle.location}
 
-                    </p>
+                        </p>
 
-                    <p>
+                        <p>
 
-                        <strong>Seats :</strong>
+                            <strong>Price:</strong>
 
-                        ${vehicle.seatingCapacity}
+                            ₹${vehicle.pricePerDay}/Day
 
-                    </p>
+                        </p>
 
-                    <p>
+                        <a href="vehicle-details.html?id=${vehicle.id}"
+                           class="btn btn-secondary w-100">
 
-                        <strong>Location :</strong>
+                            View Details
 
-                        ${vehicle.location}
+                        </a>
 
-                    </p>
-
-                    <h5>
-
-                        ₹${vehicle.pricePerDay}/Day
-
-                    </h5>
-
-                    <a href="vehicle-details.html?id=${vehicle.id}"
-
-                       class="btn btn-secondary w-100">
-
-                        View Details
-
-                    </a>
+                    </div>
 
                 </div>
 
             </div>
 
-        </div>
-
         `;
 
     });
 
-    document.getElementById("pageNumber").innerText = currentPage + 1;
-
 }
 
-document.getElementById("searchBtn").addEventListener("click", async () => {
+async function searchVehicles() {
 
-    const location = document.getElementById("location").value;
+    const location = locationInput.value.trim().toLowerCase();
 
-    if (location === "") {
-
-        loadVehicles();
-
-        return;
-
-    }
+    const vehicleType = vehicleTypeInput.value;
 
     try {
 
-        const response = await fetch(API_URL + "/search?location=" + location);
+        const response = await fetch(API);
 
         const vehicles = await response.json();
 
-        currentPage = 0;
+        const filteredVehicles = vehicles.filter(vehicle => {
 
-        displayVehicles(vehicles);
+            const locationMatch = vehicle.location
+                .toLowerCase()
+                .includes(location);
 
-    }
+            const typeMatch = vehicleType === "" ||
+                    vehicle.vehicleType === vehicleType;
 
-    catch {
+            return locationMatch && typeMatch;
 
-        alert("Search failed");
+        });
 
-    }
-
-});
-
-document.getElementById("nextBtn").addEventListener("click", () => {
-
-    currentPage++;
-
-    loadVehicles();
-
-});
-
-document.getElementById("previousBtn").addEventListener("click", () => {
-
-    if (currentPage > 0) {
-
-        currentPage--;
-
-        loadVehicles();
+        displayVehicles(filteredVehicles);
 
     }
 
-});
+    catch (error) {
 
-document.getElementById("logoutBtn").addEventListener("click", () => {
+        vehicleContainer.innerHTML = `
 
-    localStorage.clear();
+            <div class="col-12">
 
-    window.location.href = "login.html";
+                <div class="alert alert-danger">
 
-});
+                    Unable to search vehicles.
+
+                </div>
+
+            </div>
+
+        `;
+
+    }
+
+}

@@ -2,52 +2,74 @@ const API = "http://localhost:8080/api/vehicles";
 
 const params = new URLSearchParams(window.location.search);
 
-const id = params.get("id");
+const vehicleId = params.get("id");
 
 loadVehicle();
 
 async function loadVehicle() {
 
-    const response = await fetch(API + "/" + id);
+    try {
 
-    const vehicle = await response.json();
+        const response = await fetch(API + "/" + vehicleId);
 
-    document.getElementById("vehicleImage").src = vehicle.imageUrl;
+        if (!response.ok) {
 
-    document.getElementById("vehicleName").innerHTML =
-        vehicle.brand + " " + vehicle.model;
+            throw new Error("Vehicle not found.");
 
-    document.getElementById("vehicleType").innerHTML =
-        vehicle.vehicleType;
+        }
 
-    document.getElementById("fuelType").innerHTML =
-        vehicle.fuelType;
+        const vehicle = await response.json();
 
-    document.getElementById("transmission").innerHTML =
-        vehicle.transmission;
+        document.getElementById("vehicleImage").src =
+            vehicle.imageUrl;
 
-    document.getElementById("capacity").innerHTML =
-        vehicle.seatingCapacity;
+        document.getElementById("vehicleName").innerHTML =
+            vehicle.brand + " " + vehicle.model;
 
-    document.getElementById("location").innerHTML =
-        vehicle.location;
+        document.getElementById("vehicleType").innerHTML =
+            vehicle.vehicleType;
 
-    document.getElementById("color").innerHTML =
-        vehicle.color;
+        document.getElementById("fuelType").innerHTML =
+            vehicle.fuelType;
 
-    document.getElementById("year").innerHTML =
-        vehicle.manufacturingYear;
+        document.getElementById("transmission").innerHTML =
+            vehicle.transmission;
 
-    document.getElementById("description").innerHTML =
-        vehicle.description;
+        document.getElementById("capacity").innerHTML =
+            vehicle.seatingCapacity;
 
-    document.getElementById("price").innerHTML =
-        vehicle.pricePerDay;
+        document.getElementById("location").innerHTML =
+            vehicle.location;
 
-    document.getElementById("bookBtn").onclick = function () {
+        document.getElementById("color").innerHTML =
+            vehicle.color;
 
-        window.location.href = "booking.html?id=" + vehicle.id;
+        document.getElementById("year").innerHTML =
+            vehicle.manufacturingYear;
 
-    };
+        document.getElementById("description").innerHTML =
+            vehicle.description;
+
+        document.getElementById("price").innerHTML =
+            vehicle.pricePerDay;
+
+        document.getElementById("bookBtn").href =
+            "booking.html?id=" + vehicle.id;
+
+    }
+
+    catch (error) {
+
+        document.querySelector(".container").innerHTML = `
+
+            <div class="alert alert-danger text-center">
+
+                ${error.message}
+
+            </div>
+
+        `;
+
+    }
 
 }

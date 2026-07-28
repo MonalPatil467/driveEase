@@ -1,109 +1,173 @@
-const token = localStorage.getItem("token");
-
 const API = "http://localhost:8080/api/vehicles";
+
+const token = localStorage.getItem("token");
 
 const params = new URLSearchParams(window.location.search);
 
-const id = params.get("id");
+const vehicleId = params.get("id");
 
-window.onload = loadVehicle;
+const vehicleForm = document.getElementById("vehicleForm");
+
+const message = document.getElementById("message");
+
+loadVehicle();
+
+vehicleForm.addEventListener("submit", updateVehicle);
 
 async function loadVehicle() {
 
-    const response = await fetch(API + "/" + id, {
+    try {
 
-        headers: {
+        const response = await fetch(API + "/" + vehicleId, {
 
-            Authorization: "Bearer " + token
+            headers: {
+
+                "Authorization": "Bearer " + token
+
+            }
+
+        });
+
+        if (!response.ok) {
+
+            throw new Error("Unable to load vehicle.");
 
         }
 
-    });
+        const vehicle = await response.json();
 
-    const vehicle = await response.json();
+        document.getElementById("brand").value =
+            vehicle.brand;
 
-    brand.value = vehicle.brand;
-    model.value = vehicle.model;
-    registrationNumber.value = vehicle.registrationNumber;
-    manufacturingYear.value = vehicle.manufacturingYear;
-    color.value = vehicle.color;
-    vehicleType.value = vehicle.vehicleType;
-    fuelType.value = vehicle.fuelType;
-    transmission.value = vehicle.transmission;
-    seatingCapacity.value = vehicle.seatingCapacity;
-    pricePerDay.value = vehicle.pricePerDay;
-    location.value = vehicle.location;
-    imageUrl.value = vehicle.imageUrl;
-    description.value = vehicle.description;
+        document.getElementById("model").value =
+            vehicle.model;
 
-}
+        document.getElementById("vehicleType").value =
+            vehicle.vehicleType;
 
-updateBtn.onclick = async function () {
+        document.getElementById("fuelType").value =
+            vehicle.fuelType;
 
-    const vehicle = {
+        document.getElementById("transmission").value =
+            vehicle.transmission;
 
-        brand: brand.value,
+        document.getElementById("seatingCapacity").value =
+            vehicle.seatingCapacity;
 
-        model: model.value,
+        document.getElementById("manufacturingYear").value =
+            vehicle.manufacturingYear;
 
-        registrationNumber: registrationNumber.value,
+        document.getElementById("color").value =
+            vehicle.color;
 
-        manufacturingYear: manufacturingYear.value,
+        document.getElementById("location").value =
+            vehicle.location;
 
-        color: color.value,
+        document.getElementById("pricePerDay").value =
+            vehicle.pricePerDay;
 
-        vehicleType: vehicleType.value,
+        document.getElementById("imageUrl").value =
+            vehicle.imageUrl;
 
-        fuelType: fuelType.value,
-
-        transmission: transmission.value,
-
-        seatingCapacity: seatingCapacity.value,
-
-        pricePerDay: pricePerDay.value,
-
-        location: location.value,
-
-        imageUrl: imageUrl.value,
-
-        description: description.value
-
-    };
-
-    const response = await fetch(API + "/" + id, {
-
-        method: "PUT",
-
-        headers: {
-
-            "Content-Type": "application/json",
-
-            Authorization: "Bearer " + token
-
-        },
-
-        body: JSON.stringify(vehicle)
-
-    });
-
-    if (response.ok) {
-
-        message.className = "text-success mt-3";
-
-        message.innerHTML = "Vehicle updated successfully.";
-
-        setTimeout(() => {
-
-            window.location.href = "owner-dashboard.html";
-
-        }, 1200);
-
-    } else {
-
-        message.className = "text-danger mt-3";
-
-        message.innerHTML = "Failed to update vehicle.";
+        document.getElementById("description").value =
+            vehicle.description;
 
     }
 
-};
+    catch (error) {
+
+        message.className = "error";
+
+        message.innerHTML = error.message;
+
+    }
+
+}
+
+async function updateVehicle(event) {
+
+    event.preventDefault();
+
+    const vehicle = {
+
+        brand: document.getElementById("brand").value,
+
+        model: document.getElementById("model").value,
+
+        vehicleType: document.getElementById("vehicleType").value,
+
+        fuelType: document.getElementById("fuelType").value,
+
+        transmission: document.getElementById("transmission").value,
+
+        seatingCapacity: document.getElementById("seatingCapacity").value,
+
+        manufacturingYear: document.getElementById("manufacturingYear").value,
+
+        color: document.getElementById("color").value,
+
+        location: document.getElementById("location").value,
+
+        pricePerDay: document.getElementById("pricePerDay").value,
+
+        imageUrl: document.getElementById("imageUrl").value,
+
+        description: document.getElementById("description").value
+
+    };
+
+    try {
+
+        const response = await fetch(API + "/" + vehicleId, {
+
+            method: "PUT",
+
+            headers: {
+
+                "Content-Type": "application/json",
+
+                "Authorization": "Bearer " + token
+
+            },
+
+            body: JSON.stringify(vehicle)
+
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+
+            message.className = "error";
+
+            message.innerHTML =
+                result.message || "Unable to update vehicle.";
+
+            return;
+
+        }
+
+        message.className = "success";
+
+        message.innerHTML =
+            "Vehicle Updated Successfully.";
+
+        setTimeout(() => {
+
+            window.location.href =
+                "owner-dashboard.html";
+
+        }, 1500);
+
+    }
+
+    catch (error) {
+
+        message.className = "error";
+
+        message.innerHTML =
+            "Unable to connect to server.";
+
+    }
+
+}

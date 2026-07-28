@@ -1,137 +1,58 @@
-const API_URL = "http://localhost:8080/api/vehicles";
+const BASE_URL = "http://localhost:8080";
 
-document.addEventListener("DOMContentLoaded", () => {
+const VEHICLE_API = BASE_URL + "/api/vehicles";
 
-    loadVehicles();
+const SEARCH_API = BASE_URL + "/api/vehicles/search";
 
-});
+const vehicleContainer = document.getElementById("vehicleContainer");
 
-async function loadVehicles(){
+const searchButton = document.getElementById("searchBtn");
 
-    try{
+const locationInput = document.getElementById("location");
 
-        const response = await fetch(API_URL);
+loadVehicles();
 
-        if(!response.ok){
+searchButton.addEventListener("click", searchVehicles);
 
-            throw new Error("Failed to fetch vehicles.");
+async function loadVehicles() {
+
+    try {
+
+        const response = await fetch(VEHICLE_API);
+
+        if (!response.ok) {
+
+            throw new Error("Unable to load vehicles.");
 
         }
 
-        const vehicles = await response.json();
+        const page = await response.json();
 
-        displayVehicles(vehicles);
-
-    }
-
-    catch(error){
-
-        document.getElementById("vehicleContainer").innerHTML =
-
-        `<h4 class="text-danger text-center">
-            Unable to load vehicles.
-        </h4>`;
+        displayVehicles(page.content);
 
     }
 
-}
+    catch (error) {
 
-function displayVehicles(vehicles){
+        vehicleContainer.innerHTML = `
 
-    const container = document.getElementById("vehicleContainer");
+            <div class="col-12 text-center text-danger">
 
-    container.innerHTML = "";
-
-    if(vehicles.length===0){
-
-        container.innerHTML =
-
-        `<h4 class="text-center text-danger">
-            No Vehicles Found
-        </h4>`;
-
-        return;
-
-    }
-
-    vehicles.forEach(vehicle=>{
-
-        container.innerHTML += `
-
-        <div class="col-md-4">
-
-            <div class="card vehicle-card h-100">
-
-                <img src="${vehicle.imageUrl}"
-                     class="card-img-top"
-                     alt="Vehicle">
-
-                <div class="card-body">
-
-                    <h5>${vehicle.brand} ${vehicle.model}</h5>
-
-                    <p>
-
-                        <strong>Type:</strong>
-                        ${vehicle.vehicleType}
-
-                    </p>
-
-                    <p>
-
-                        <strong>Fuel:</strong>
-                        ${vehicle.fuelType}
-
-                    </p>
-
-                    <p>
-
-                        <strong>Transmission:</strong>
-                        ${vehicle.transmission}
-
-                    </p>
-
-                    <p>
-
-                        <strong>Location:</strong>
-                        ${vehicle.location}
-
-                    </p>
-
-                    <p>
-
-                        <strong>₹${vehicle.pricePerDay}</strong>
-                        / Day
-
-                    </p>
-
-                    <a href="vehicle-details.html?id=${vehicle.id}"
-
-                       class="btn btn-secondary w-100">
-
-                        View Details
-
-                    </a>
-
-                </div>
+                ${error.message}
 
             </div>
 
-        </div>
-
         `;
 
-    });
+    }
 
 }
 
-document.getElementById("searchBtn").addEventListener("click", searchVehicle);
+async function searchVehicles() {
 
-async function searchVehicle(){
+    const location = locationInput.value.trim();
 
-    const location = document.getElementById("location").value;
-
-    if(location===""){
+    if (location === "") {
 
         loadVehicles();
 
@@ -139,13 +60,17 @@ async function searchVehicle(){
 
     }
 
-    try{
+    try {
 
-        const response = await fetch(API_URL + "/search?location=" + location);
+        const response = await fetch(
 
-        if(!response.ok){
+            SEARCH_API + "?location=" + encodeURIComponent(location)
 
-            throw new Error();
+        );
+
+        if (!response.ok) {
+
+            throw new Error("No vehicles found.");
 
         }
 
@@ -155,26 +80,98 @@ async function searchVehicle(){
 
     }
 
-    catch(error){
+    catch (error) {
 
-        document.getElementById("vehicleContainer").innerHTML=
+        vehicleContainer.innerHTML = `
 
-        `<h4 class="text-danger text-center">
-            Error while searching.
-        </h4>`;
+            <div class="col-12 text-center text-danger">
+
+                ${error.message}
+
+            </div>
+
+        `;
 
     }
 
 }
 
-document.getElementById("logoutBtn").addEventListener("click",()=>{
+function displayVehicles(vehicles) {
 
-    localStorage.removeItem("token");
+    vehicleContainer.innerHTML = "";
 
-    localStorage.removeItem("role");
+    if (vehicles.length === 0) {
 
-    localStorage.removeItem("email");
+        vehicleContainer.innerHTML = `
 
-    window.location.href="login.html";
+            <div class="col-12 text-center">
 
-});
+                <h5>No Vehicles Available</h5>
+
+            </div>
+
+        `;
+
+        return;
+
+    }
+
+    vehicles.forEach(vehicle => {
+
+        vehicleContainer.innerHTML += `
+
+            <div class="col-md-4 mb-4">
+
+                <div class="card vehicle-card h-100">
+
+                    <img src="${vehicle.imageUrl}"
+
+                         class="card-img-top"
+
+                         alt="${vehicle.brand}">
+
+                    <div class="card-body">
+
+                        <h5>
+
+                            ${vehicle.brand} ${vehicle.model}
+
+                        </h5>
+
+                        <p>
+
+                            ${vehicle.vehicleType}
+
+                        </p>
+
+                        <p>
+
+                            📍 ${vehicle.location}
+
+                        </p>
+
+                        <p>
+
+                            ₹${vehicle.pricePerDay} / Day
+
+                        </p>
+
+                        <a href="vehicle-details.html?id=${vehicle.id}"
+
+                           class="btn btn-secondary w-100">
+
+                           View Details
+
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        `;
+
+    });
+
+}

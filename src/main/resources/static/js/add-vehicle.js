@@ -2,22 +2,21 @@ const API = "http://localhost:8080/api/vehicles";
 
 const token = localStorage.getItem("token");
 
-document.getElementById("addVehicleBtn")
-    .addEventListener("click", addVehicle);
+const vehicleForm = document.getElementById("vehicleForm");
 
-async function addVehicle() {
+const message = document.getElementById("message");
+
+vehicleForm.addEventListener("submit", addVehicle);
+
+async function addVehicle(event) {
+
+    event.preventDefault();
 
     const vehicle = {
 
         brand: document.getElementById("brand").value,
 
         model: document.getElementById("model").value,
-
-        registrationNumber: document.getElementById("registrationNumber").value,
-
-        manufacturingYear: document.getElementById("manufacturingYear").value,
-
-        color: document.getElementById("color").value,
 
         vehicleType: document.getElementById("vehicleType").value,
 
@@ -27,9 +26,13 @@ async function addVehicle() {
 
         seatingCapacity: document.getElementById("seatingCapacity").value,
 
-        pricePerDay: document.getElementById("pricePerDay").value,
+        manufacturingYear: document.getElementById("manufacturingYear").value,
+
+        color: document.getElementById("color").value,
 
         location: document.getElementById("location").value,
+
+        pricePerDay: document.getElementById("pricePerDay").value,
 
         imageUrl: document.getElementById("imageUrl").value,
 
@@ -55,33 +58,39 @@ async function addVehicle() {
 
         });
 
+        const result = await response.json();
+
         if (!response.ok) {
 
-            throw new Error();
+            message.className = "error";
+
+            message.innerHTML =
+                result.message || "Unable to add vehicle.";
+
+            return;
 
         }
 
-        document.getElementById("message").className =
-            "text-success mt-3";
+        message.className = "success";
 
-        document.getElementById("message").innerHTML =
-            "Vehicle added successfully.";
+        message.innerHTML =
+            "Vehicle Added Successfully.";
 
         setTimeout(() => {
 
-            window.location.href = "owner-dashboard.html";
+            window.location.href =
+                "owner-dashboard.html";
 
         }, 1500);
 
     }
 
-    catch {
+    catch (error) {
 
-        document.getElementById("message").className =
-            "text-danger mt-3";
+        message.className = "error";
 
-        document.getElementById("message").innerHTML =
-            "Failed to add vehicle.";
+        message.innerHTML =
+            "Unable to connect to server.";
 
     }
 

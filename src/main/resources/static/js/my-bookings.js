@@ -2,17 +2,21 @@ const API = "http://localhost:8080/api/bookings";
 
 const token = localStorage.getItem("token");
 
-document.addEventListener("DOMContentLoaded", loadBookings);
+const bookingTable = document.getElementById("bookingTable");
+
+const message = document.getElementById("message");
+
+loadBookings();
 
 async function loadBookings() {
 
     try {
 
-        const response = await fetch(API + "/my", {
+        const response = await fetch(API + "/my-bookings", {
 
             headers: {
 
-                Authorization: "Bearer " + token
+                "Authorization": "Bearer " + token
 
             }
 
@@ -20,145 +24,88 @@ async function loadBookings() {
 
         if (!response.ok) {
 
-            throw new Error();
+            throw new Error("Unable to load bookings.");
 
         }
 
         const bookings = await response.json();
 
-        displayBookings(bookings);
+        bookingTable.innerHTML = "";
 
-    }
+        if (bookings.length === 0) {
 
-    catch {
+            message.innerHTML = "No Bookings Found.";
 
-        document.getElementById("bookingContainer").innerHTML =
-
-            `<h3 class="text-danger text-center">
-                Unable to load bookings.
-            </h3>`;
-
-    }
-
-}
-
-function displayBookings(bookings) {
-
-    const container = document.getElementById("bookingContainer");
-
-    container.innerHTML = "";
-
-    if (bookings.length === 0) {
-
-        container.innerHTML =
-
-            `<h3 class="text-white text-center">
-                No Bookings Found
-            </h3>`;
-
-        return;
-
-    }
-
-    bookings.forEach(booking => {
-
-        container.innerHTML += `
-
-        <div class="col-md-6 mb-4">
-
-            <div class="card bg-dark text-white h-100">
-
-                <div class="card-body">
-
-                    <h4>${booking.vehicleBrand} ${booking.vehicleModel}</h4>
-
-                    <hr>
-
-                    <p>
-
-                        Pickup :
-                        ${booking.pickupDate}
-
-                    </p>
-
-                    <p>
-
-                        Return :
-                        ${booking.returnDate}
-
-                    </p>
-
-                    <p>
-
-                        Amount :
-                        ₹${booking.totalAmount}
-
-                    </p>
-
-                    <p>
-
-                        Status :
-                        ${booking.bookingStatus}
-
-                    </p>
-
-                    <button
-                        class="btn btn-danger w-100"
-                        onclick="cancelBooking(${booking.id})">
-
-                        Cancel Booking
-
-                    </button>
-
-                </div>
-
-            </div>
-
-        </div>
-
-        `;
-
-    });
-
-}
-
-async function cancelBooking(id) {
-
-    if (!confirm("Cancel this booking?")) {
-
-        return;
-
-    }
-
-    try {
-
-        const response = await fetch(API + "/" + id + "/cancel", {
-
-            method: "PUT",
-
-            headers: {
-
-                Authorization: "Bearer " + token
-
-            }
-
-        });
-
-        if (!response.ok) {
-
-            throw new Error();
+            return;
 
         }
 
-        alert("Booking Cancelled");
+        bookings.forEach(booking => {
 
-        loadBookings();
+            bookingTable.innerHTML += `
+
+                <tr>
+
+                    <td>
+
+                        ${booking.id}
+
+                    </td>
+
+                    <td>
+
+                        ${booking.vehicle.brand}
+                        ${booking.vehicle.model}
+
+                    </td>
+
+                    <td>
+
+                        ${booking.pickupDate}
+
+                    </td>
+
+                    <td>
+
+                        ${booking.returnDate}
+
+                    </td>
+
+                    <td>
+
+                        ₹${booking.totalAmount}
+
+                    </td>
+
+                    <td>
+
+                        ${booking.bookingStatus}
+
+                    </td>
+
+                    <td>
+
+                        <a href="review.html?bookingId=${booking.id}"
+
+                           class="btn btn-sm btn-secondary">
+
+                            Review
+
+                        </a>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
 
     }
 
-    catch {
+    catch (error) {
 
-        alert("Unable to cancel booking.");
+        message.innerHTML = error.message;
 
     }
 
