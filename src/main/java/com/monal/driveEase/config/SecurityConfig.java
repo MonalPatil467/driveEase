@@ -39,16 +39,11 @@ public class SecurityConfig {
                                 "/register.html",
                                 "/vehicles.html",
                                 "/vehicle-details.html",
-
                                 "/css/**",
                                 "/js/**",
                                 "/images/**",
-
                                 "/api/auth/**",
-                                "/favicon.ico",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html",
-                                "/v3/api-docs/**"
+                                "/favicon.ico"
                         ).permitAll()
 
                         .anyRequest().authenticated()
