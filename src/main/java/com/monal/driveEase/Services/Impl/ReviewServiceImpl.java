@@ -26,39 +26,60 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class ReviewServiceImpl implements ReviewService {
+
     private final ReviewRepository reviewRepository;
     private final VehicleRepository vehicleRepository;
     private final BookingRepository bookingRepository;
     private final UserRepository userRepository;
     private final ReviewMapper reviewMapper;
+
     @Override
     public ReviewResponse addReview(ReviewRequest request) {
 
-
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-
-        String email = authentication.getName();
-
-        User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException("Only customers can add reviews.");
+            throw new BadRequestException(
+                    "Only customers can add reviews."
+            );
         }
 
-        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+        Vehicle vehicle = vehicleRepository
+                .findById(request.getVehicleId())
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
+                );
 
         Booking booking = bookingRepository
-                .findByCustomerIdAndVehicleId(customer.getId(), vehicle.getId())
-                .orElseThrow(() -> new BadRequestException("You must book this vehicle before reviewing."));
+                .findByCustomerIdAndVehicleId(
+                        customer.getId(),
+                        vehicle.getId()
+                )
+                .orElseThrow(() ->
+                        new BadRequestException(
+                                "You must book this vehicle before reviewing."
+                        )
+                );
 
-        if (booking.getBookingStatus() != BookingStatus.CONFIRMED) {
-            throw new BadRequestException("Only confirmed bookings can be reviewed.");
+        if (booking.getBookingStatus()
+                != BookingStatus.CONFIRMED) {
+
+            throw new BadRequestException(
+                    "Only confirmed bookings can be reviewed."
+            );
         }
 
-        if (reviewRepository.existsByCustomerIdAndVehicleId(customer.getId(), vehicle.getId())) {
-            throw new BadRequestException("You have already reviewed this vehicle.");
+        if (reviewRepository
+                .existsByCustomerIdAndVehicleId(
+                        customer.getId(),
+                        vehicle.getId()
+                )) {
+
+            throw new BadRequestException(
+                    "You have already reviewed this vehicle."
+            );
         }
 
         Review review = reviewMapper.toEntity(request);
@@ -66,38 +87,94 @@ public class ReviewServiceImpl implements ReviewService {
         review.setCustomer(customer);
         review.setVehicle(vehicle);
 
-        Review savedReview = reviewRepository.save(review);
+        Review savedReview =
+                reviewRepository.save(review);
 
         return reviewMapper.toResponse(savedReview);
     }
 
     @Override
-    public ReviewResponse updateReview(Long reviewId, ReviewRequest request) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+    public ReviewResponse updateReview(
+            Long reviewId,
+            ReviewRequest request) {
+
+        User customer = getAuthenticatedUser();
+
+        if (customer.getRole() != Role.CUSTOMER) {
+            throw new BadRequestException(
+                    "Only customers can update reviews."
+            );
+        }
+
+        Review review = reviewRepository
+                .findById(reviewId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Review not found"
+                        )
+                );
+
+        if (!review.getCustomer().getId()
+                .equals(customer.getId())) {
+
+            throw new BadRequestException(
+                    "You can only update your own review."
+            );
+        }
 
         review.setRating(request.getRating());
         review.setComment(request.getComment());
 
-        Review updatedReview = reviewRepository.save(review);
+        Review updatedReview =
+                reviewRepository.save(review);
 
         return reviewMapper.toResponse(updatedReview);
     }
 
     @Override
     public void deleteReview(Long reviewId) {
-        Review review = reviewRepository.findById(reviewId)
-                .orElseThrow(() -> new ResourceNotFoundException("Review not found"));
+
+        User customer = getAuthenticatedUser();
+
+        if (customer.getRole() != Role.CUSTOMER) {
+            throw new BadRequestException(
+                    "Only customers can delete reviews."
+            );
+        }
+
+        Review review = reviewRepository
+                .findById(reviewId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Review not found"
+                        )
+                );
+
+        if (!review.getCustomer().getId()
+                .equals(customer.getId())) {
+
+            throw new BadRequestException(
+                    "You can only delete your own review."
+            );
+        }
 
         reviewRepository.delete(review);
     }
 
     @Override
-    public List<ReviewResponse> getReviewsByVehicle(Long vehicleId) {
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+    public List<ReviewResponse> getReviewsByVehicle(
+            Long vehicleId) {
 
-        return reviewRepository.findByVehicleId(vehicle.getId())
+        Vehicle vehicle = vehicleRepository
+                .findById(vehicleId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
+                );
+
+        return reviewRepository
+                .findByVehicleId(vehicle.getId())
                 .stream()
                 .map(reviewMapper::toResponse)
                 .toList();
@@ -105,16 +182,44 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     public List<ReviewResponse> getMyReviews() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        String email = authentication.getName();
+        User customer = getAuthenticatedUser();
 
-        User customer = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        if (customer.getRole() != Role.CUSTOMER) {
+            throw new BadRequestException(
+                    "Only customers can view their reviews."
+            );
+        }
 
-        return reviewRepository.findByCustomerId(customer.getId())
+        return reviewRepository
+                .findByCustomerId(customer.getId())
                 .stream()
                 .map(reviewMapper::toResponse)
                 .toList();
+    }
+
+    private User getAuthenticatedUser() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()) {
+
+            throw new BadRequestException(
+                    "User is not authenticated."
+            );
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Authenticated user not found"
+                        )
+                );
     }
 }

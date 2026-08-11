@@ -12,6 +12,8 @@ import com.monal.driveEase.Repositories.UserRepository;
 import com.monal.driveEase.Repositories.VehicleRepository;
 import com.monal.driveEase.Services.VehicleService;
 import com.monal.driveEase.enums.BookingStatus;
+import com.monal.driveEase.enums.Role;
+import com.monal.driveEase.exception.BadRequestException;
 import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.exception.UnauthorizedException;
 import com.monal.driveEase.mappers.VehicleMapper;
@@ -25,29 +27,25 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import com.monal.driveEase.enums.Role;
 
 @Service
 @RequiredArgsConstructor
 public class VehicleServiceImpl implements VehicleService {
+
     private final VehicleRepository vehicleRepository;
     private final UserRepository userRepository;
     private final VehicleMapper vehicleMapper;
     private final BookingRepository bookingRepository;
+
     @Override
     public VehicleResponse addVehicle(VehicleRequest request) {
-        Authentication authentication = SecurityContextHolder
-                .getContext()
-                .getAuthentication();
 
-        String email = authentication.getName();
-
-        User owner = userRepository.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("Owner not found"));
+        User owner = getAuthenticatedUser();
 
         if (owner.getRole() != Role.OWNER) {
-            throw new UnauthorizedException("Only owners can add vehicles.");
-           // throw new RuntimeException("Only owners can add vehicles.");
+            throw new UnauthorizedException(
+                    "Only owners can add vehicles."
+            );
         }
 
         Vehicle vehicle = vehicleMapper.toEntity(request);
@@ -55,38 +53,83 @@ public class VehicleServiceImpl implements VehicleService {
         vehicle.setOwner(owner);
         vehicle.setAvailable(true);
 
-        Vehicle savedVehicle = vehicleRepository.save(vehicle);
+        Vehicle savedVehicle =
+                vehicleRepository.save(vehicle);
 
         return vehicleMapper.toResponse(savedVehicle);
     }
 
     @Override
-    public VehicleResponse updateVehicle(Long id, VehicleRequest request) {
+    public VehicleResponse updateVehicle(
+            Long id,
+            VehicleRequest request) {
+
+        User owner = getAuthenticatedUser();
+
+        if (owner.getRole() != Role.OWNER) {
+            throw new UnauthorizedException(
+                    "Only owners can update vehicles."
+            );
+        }
+
         Vehicle vehicle = vehicleRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
-               // .orElseThrow(() -> new RuntimeException("Vehicle not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
+                );
+
+        if (!vehicle.getOwner().getId()
+                .equals(owner.getId())) {
+
+            throw new UnauthorizedException(
+                    "You can only update your own vehicles."
+            );
+        }
 
         vehicle.setBrand(request.getBrand());
         vehicle.setModel(request.getModel());
-        vehicle.setRegistrationNumber(request.getRegistrationNumber());
-        vehicle.setManufacturingYear(request.getManufacturingYear());
+        vehicle.setRegistrationNumber(
+                request.getRegistrationNumber()
+        );
+        vehicle.setManufacturingYear(
+                request.getManufacturingYear()
+        );
         vehicle.setColor(request.getColor());
-        vehicle.setVehicleType(request.getVehicleType());
-        vehicle.setFuelType(request.getFuelType());
-        vehicle.setTransmission(request.getTransmission());
-        vehicle.setSeatingCapacity(request.getSeatingCapacity());
-        vehicle.setPricePerDay(request.getPricePerDay());
-        vehicle.setLocation(request.getLocation());
-        vehicle.setDescription(request.getDescription());
-        vehicle.setImageUrl(request.getImageUrl());
+        vehicle.setVehicleType(
+                request.getVehicleType()
+        );
+        vehicle.setFuelType(
+                request.getFuelType()
+        );
+        vehicle.setTransmission(
+                request.getTransmission()
+        );
+        vehicle.setSeatingCapacity(
+                request.getSeatingCapacity()
+        );
+        vehicle.setPricePerDay(
+                request.getPricePerDay()
+        );
+        vehicle.setLocation(
+                request.getLocation()
+        );
+        vehicle.setDescription(
+                request.getDescription()
+        );
+        vehicle.setImageUrl(
+                request.getImageUrl()
+        );
 
-        Vehicle updatedVehicle = vehicleRepository.save(vehicle);
+        Vehicle updatedVehicle =
+                vehicleRepository.save(vehicle);
 
         return vehicleMapper.toResponse(updatedVehicle);
     }
 
     @Override
-    public List<VehicleResponse> filterVehicles(VehicleFilterRequest request) {
+    public List<VehicleResponse> filterVehicles(
+            VehicleFilterRequest request) {
 
         return vehicleRepository.filterVehicles(
                         request.getLocation(),
@@ -102,60 +145,132 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
-    public List<VehicleAvailabilityResponse> getVehicleAvailability(Long vehicleId) {
+    public void deleteVehicle(Long id) {
 
-        Vehicle vehicle = vehicleRepository.findById(vehicleId)
+        User owner = getAuthenticatedUser();
+
+        if (owner.getRole() != Role.OWNER) {
+            throw new UnauthorizedException(
+                    "Only owners can delete vehicles."
+            );
+        }
+
+        Vehicle vehicle = vehicleRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Vehicle not found"));
-
-        List<Booking> bookings =
-                bookingRepository.findByVehicleIdAndBookingStatus(
-                        vehicle.getId(),
-                        BookingStatus.CONFIRMED
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
                 );
 
-        return bookings.stream()
-                .map(booking ->
-                        VehicleAvailabilityResponse.builder()
-                                .pickupDate(booking.getPickupDate())
-                                .returnDate(booking.getReturnDate())
-                                .build())
-                .toList();
-    }
+        if (!vehicle.getOwner().getId()
+                .equals(owner.getId())) {
 
-    @Override
-    public void deleteVehicle(Long id) {
-        Vehicle vehicle = vehicleRepository.findById(id)
-                //.orElseThrow(() -> new RuntimeException("Vehicle not found"));
-                .orElseThrow(() -> new ResourceNotFoundException("Owner not found"));
+            throw new UnauthorizedException(
+                    "You can only delete your own vehicles."
+            );
+        }
 
         vehicleRepository.delete(vehicle);
     }
 
     @Override
     public VehicleResponse getVehicleById(Long id) {
-        Vehicle vehicle=vehicleRepository.findById(id).orElseThrow(()->new RuntimeException("vehicle not found"));
+
+        Vehicle vehicle = vehicleRepository.findById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
+                );
+
         return vehicleMapper.toResponse(vehicle);
     }
 
     @Override
-    public Page<VehicleResponse> getAllVehicles(int page, int size, String sortBy, String direction) {
+    public Page<VehicleResponse> getAllVehicles(
+            int page,
+            int size,
+            String sortBy,
+            String direction) {
 
         Sort sort = direction.equalsIgnoreCase("desc")
                 ? Sort.by(sortBy).descending()
                 : Sort.by(sortBy).ascending();
 
-        Pageable pageable = PageRequest.of(page, size, sort);
+        Pageable pageable =
+                PageRequest.of(page, size, sort);
 
-        return vehicleRepository.findAll(pageable)
+        return vehicleRepository
+                .findAll(pageable)
                 .map(vehicleMapper::toResponse);
     }
 
     @Override
-    public List<VehicleResponse> searchVehicles(String location) {
-        return vehicleRepository.findByLocationIgnoreCase(location)
+    public List<VehicleResponse> searchVehicles(
+            String location) {
+
+        return vehicleRepository
+                .findByLocationIgnoreCase(location)
                 .stream()
                 .map(vehicleMapper::toResponse)
                 .toList();
+    }
+
+    @Override
+    public List<VehicleAvailabilityResponse>
+    getVehicleAvailability(Long vehicleId) {
+
+        Vehicle vehicle = vehicleRepository
+                .findById(vehicleId)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Vehicle not found"
+                        )
+                );
+
+        List<Booking> bookings =
+                bookingRepository
+                        .findByVehicleIdAndBookingStatus(
+                                vehicle.getId(),
+                                BookingStatus.CONFIRMED
+                        );
+
+        return bookings.stream()
+                .map(booking ->
+                        VehicleAvailabilityResponse.builder()
+                                .pickupDate(
+                                        booking.getPickupDate()
+                                )
+                                .returnDate(
+                                        booking.getReturnDate()
+                                )
+                                .build()
+                )
+                .toList();
+    }
+
+    private User getAuthenticatedUser() {
+
+        Authentication authentication =
+                SecurityContextHolder
+                        .getContext()
+                        .getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()) {
+
+            throw new BadRequestException(
+                    "User is not authenticated."
+            );
+        }
+
+        String email = authentication.getName();
+
+        return userRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException(
+                                "Authenticated user not found"
+                        )
+                );
     }
 }

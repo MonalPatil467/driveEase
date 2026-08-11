@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
+
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -28,14 +29,15 @@ public class AuthServiceImpl implements AuthService {
     public AuthResponse register(RegisterRequest request) {
 
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-          //  throw new RuntimeException("Email already exists");
             throw new BadRequestException("Email already exists");
         }
 
         if (request.getRole() == Role.ADMIN) {
-           // throw new RuntimeException("Admin registration is not allowed.");
-            throw new BadRequestException("Admin registration is not allowed");
+            throw new BadRequestException(
+                    "Admin registration is not allowed"
+            );
         }
+
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
@@ -46,9 +48,9 @@ public class AuthServiceImpl implements AuthService {
                 .role(request.getRole())
                 .build();
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
-        String token = jwtService.generateToken(user);
+        String token = jwtService.generateToken(savedUser);
 
         return AuthResponse.builder()
                 .token(token)
@@ -67,8 +69,9 @@ public class AuthServiceImpl implements AuthService {
         );
 
         User user = userRepository.findByEmail(request.getEmail())
-                //.orElseThrow(() -> new RuntimeException("User not found"));
-                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("User not found")
+                );
 
         String token = jwtService.generateToken(user);
 
