@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 public interface PaymentRepository extends JpaRepository<Payment,Long> {
     List<Payment> findByBookingCustomerId(Long customerId);
@@ -25,4 +26,8 @@ WHERE p.booking.vehicle.owner = :owner
 AND p.paymentStatus='SUCCESS'
 """)
     Double getOwnerRevenue(User owner);
+
+    Optional<Payment> findByTransactionId(String transactionId);
+
+
 }

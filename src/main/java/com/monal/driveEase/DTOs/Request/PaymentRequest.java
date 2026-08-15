@@ -12,3 +12,4 @@ public class PaymentRequest {
     private Long bookingId;
     private PaymentMethod paymentMethod;
 }
+

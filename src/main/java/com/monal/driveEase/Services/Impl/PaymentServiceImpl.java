@@ -9,19 +9,20 @@ import com.monal.driveEase.Repositories.BookingRepository;
 import com.monal.driveEase.Repositories.PaymentRepository;
 import com.monal.driveEase.Repositories.UserRepository;
 import com.monal.driveEase.Services.PaymentService;
-import com.monal.driveEase.enums.BookingStatus;
 import com.monal.driveEase.enums.PaymentStatus;
 import com.monal.driveEase.enums.Role;
 import com.monal.driveEase.exception.BadRequestException;
 import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.mappers.PaymentMapper;
+import com.stripe.exception.StripeException;
+import com.stripe.model.PaymentIntent;
+import com.stripe.param.PaymentIntentCreateParams;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -51,7 +52,8 @@ public class PaymentServiceImpl implements PaymentService {
                         )
                 );
 
-        if (!booking.getCustomer().getId()
+        if (!booking.getCustomer()
+                .getId()
                 .equals(customer.getId())) {
 
             throw new BadRequestException(
@@ -61,26 +63,69 @@ public class PaymentServiceImpl implements PaymentService {
 
         if (booking.getPayment() != null) {
             throw new BadRequestException(
-                    "Payment already completed."
+                    "Payment already exists for this booking."
             );
         }
 
-        Payment payment = Payment.builder()
-                .transactionId(UUID.randomUUID().toString())
-                .amount(booking.getTotalAmount())
-                .paymentMethod(request.getPaymentMethod())
-                .paymentStatus(PaymentStatus.SUCCESS)
-                .booking(booking)
-                .build();
+        try {
 
-        booking.setBookingStatus(
-                BookingStatus.CONFIRMED
-        );
+            long amountInPaise =
+                    Math.round(
+                            booking.getTotalAmount() * 100
+                    );
 
-        Payment savedPayment =
-                paymentRepository.save(payment);
+            PaymentIntentCreateParams params =
+                    PaymentIntentCreateParams.builder()
+                            .setAmount(amountInPaise)
+                            .setCurrency("inr")
+                            .setDescription(
+                                    "DriveEase booking payment - Booking ID: "
+                                            + booking.getId()
+                            )
+                            .putMetadata(
+                                    "bookingId",
+                                    booking.getId().toString()
+                            )
+                            .putMetadata(
+                                    "customerId",
+                                    customer.getId().toString()
+                            )
+                            .build();
 
-        return paymentMapper.toResponse(savedPayment);
+            PaymentIntent paymentIntent =
+                    PaymentIntent.create(params);
+
+            Payment payment = Payment.builder()
+                    .transactionId(paymentIntent.getId())
+                    .amount(booking.getTotalAmount())
+                    .paymentMethod(request.getPaymentMethod())
+                    .paymentStatus(PaymentStatus.PENDING)
+                    .booking(booking)
+                    .build();
+
+            Payment savedPayment =
+                    paymentRepository.save(payment);
+
+            PaymentResponse response =
+                    paymentMapper.toResponse(savedPayment);
+
+            response.setStripePaymentIntentId(
+                    paymentIntent.getId()
+            );
+
+            response.setClientSecret(
+                    paymentIntent.getClientSecret()
+            );
+
+            return response;
+
+        } catch (StripeException e) {
+
+            throw new BadRequestException(
+                    "Unable to create Stripe payment: "
+                            + e.getMessage()
+            );
+        }
     }
 
     @Override
@@ -88,7 +133,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         User currentUser = getAuthenticatedUser();
 
-        Payment payment = paymentRepository.findById(id)
+        Payment payment = paymentRepository
+                .findById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Payment not found"
@@ -148,7 +194,8 @@ public class PaymentServiceImpl implements PaymentService {
 
         String email = authentication.getName();
 
-        return userRepository.findByEmail(email)
+        return userRepository
+                .findByEmail(email)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Authenticated user not found"

@@ -34,6 +34,7 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/",
+                                "/api/payments/webhook",
                                 "/index.html",
                                 "/login.html",
                                 "/register.html",
