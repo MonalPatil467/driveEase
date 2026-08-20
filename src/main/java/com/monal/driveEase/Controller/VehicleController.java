@@ -17,6 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/vehicles")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "http://localhost:4200")
 public class VehicleController {
 
     private final VehicleService vehicleService;
@@ -29,6 +30,14 @@ public class VehicleController {
         return new ResponseEntity<>(
                 vehicleService.addVehicle(request),
                 HttpStatus.CREATED
+        );
+    }
+
+    @GetMapping("/my-vehicles")
+    public ResponseEntity<List<VehicleResponse>> getMyVehicles() {
+
+        return ResponseEntity.ok(
+                vehicleService.getMyVehicles()
         );
     }
 

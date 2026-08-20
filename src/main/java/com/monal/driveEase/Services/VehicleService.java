@@ -19,6 +19,8 @@ public interface VehicleService {
 
     VehicleResponse getVehicleById(Long id);
 
+    List<VehicleResponse> getMyVehicles();
+
     Page<VehicleResponse> getAllVehicles(int page, int size, String sortBy, String direction);
 
     List<VehicleResponse> searchVehicles(String location);

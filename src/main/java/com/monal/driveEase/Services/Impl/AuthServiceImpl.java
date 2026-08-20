@@ -28,9 +28,13 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse register(RegisterRequest request) {
 
+       // System.out.println("1. Registration started");
+
+       // System.out.println("2. Checking email...");
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new BadRequestException("Email already exists");
         }
+       // System.out.println("3. Email check completed");
 
         if (request.getRole() == Role.ADMIN) {
             throw new BadRequestException(
@@ -38,23 +42,33 @@ public class AuthServiceImpl implements AuthService {
             );
         }
 
+       // System.out.println("4. Starting password encoding...");
+        String encodedPassword = passwordEncoder.encode(request.getPassword());
+      //  System.out.println("5. Password encoding completed");
+
         User user = User.builder()
                 .firstName(request.getFirstName())
                 .lastName(request.getLastName())
                 .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
+                .password(encodedPassword)
                 .phoneNumber(request.getPhoneNumber())
                 .address(request.getAddress())
                 .role(request.getRole())
                 .build();
 
+     //   System.out.println("6. Saving user...");
         User savedUser = userRepository.save(user);
+     //   System.out.println("7. User saved");
 
+      //  System.out.println("8. Generating JWT...");
         String token = jwtService.generateToken(savedUser);
+        //System.out.println("9. JWT generated");
 
         return AuthResponse.builder()
                 .token(token)
                 .message("Registration Successful")
+                .role(savedUser.getRole().name())
+                .userId(savedUser.getId())
                 .build();
     }
 
@@ -78,6 +92,8 @@ public class AuthServiceImpl implements AuthService {
         return AuthResponse.builder()
                 .token(token)
                 .message("Login Successful")
+                .role(user.getRole().name())
+                .userId(user.getId())
                 .build();
     }
 }

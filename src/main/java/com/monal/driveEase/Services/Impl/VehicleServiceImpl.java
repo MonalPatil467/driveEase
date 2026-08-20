@@ -187,6 +187,23 @@ public class VehicleServiceImpl implements VehicleService {
     }
 
     @Override
+    public List<VehicleResponse> getMyVehicles() {
+
+        User owner = getAuthenticatedUser();
+
+        if (owner.getRole() != Role.OWNER) {
+            throw new UnauthorizedException(
+                    "Only owners can view their vehicles."
+            );
+        }
+
+        return vehicleRepository
+                .findByOwnerId(owner.getId())
+                .stream()
+                .map(vehicleMapper::toResponse)
+                .toList();
+    }
+    @Override
     public Page<VehicleResponse> getAllVehicles(
             int page,
             int size,

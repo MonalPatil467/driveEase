@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface VehicleRepository extends JpaRepository<Vehicle,Long> {
     List<Vehicle> findByLocationIgnoreCase(String location);
@@ -32,4 +33,7 @@ AND (:maxPrice IS NULL OR v.pricePerDay<=:maxPrice)
             @Param("minPrice") Double minPrice,
             @Param("maxPrice") Double maxPrice
     );
+
+
+    List<Vehicle> findByOwnerId(Long id);
 }
