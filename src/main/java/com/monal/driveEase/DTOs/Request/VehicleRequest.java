@@ -3,6 +3,7 @@ package com.monal.driveEase.DTOs.Request;
 import com.monal.driveEase.enums.FuelType;
 import com.monal.driveEase.enums.Transmission;
 import com.monal.driveEase.enums.VehicleType;
+import jakarta.persistence.Column;
 import lombok.*;
 
 @Getter
@@ -23,8 +24,15 @@ public class VehicleRequest {
     private Integer seatingCapacity;
     private Double pricePerDay;
     private String location;
+
+
+    @Column(length = 2000)
     private String description;
+
     private Boolean available;
+
+
+    @Column(length = 500)
     private String imageUrl;
 
    // private Long ownerId;

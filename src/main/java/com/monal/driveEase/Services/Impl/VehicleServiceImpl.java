@@ -89,34 +89,47 @@ public class VehicleServiceImpl implements VehicleService {
 
         vehicle.setBrand(request.getBrand());
         vehicle.setModel(request.getModel());
+
         vehicle.setRegistrationNumber(
                 request.getRegistrationNumber()
         );
+
         vehicle.setManufacturingYear(
                 request.getManufacturingYear()
         );
-        vehicle.setColor(request.getColor());
+
+        vehicle.setColor(
+                request.getColor()
+        );
+
         vehicle.setVehicleType(
                 request.getVehicleType()
         );
+
         vehicle.setFuelType(
                 request.getFuelType()
         );
+
         vehicle.setTransmission(
                 request.getTransmission()
         );
+
         vehicle.setSeatingCapacity(
                 request.getSeatingCapacity()
         );
+
         vehicle.setPricePerDay(
                 request.getPricePerDay()
         );
+
         vehicle.setLocation(
                 request.getLocation()
         );
+
         vehicle.setDescription(
                 request.getDescription()
         );
+
         vehicle.setImageUrl(
                 request.getImageUrl()
         );
@@ -131,7 +144,8 @@ public class VehicleServiceImpl implements VehicleService {
     public List<VehicleResponse> filterVehicles(
             VehicleFilterRequest request) {
 
-        return vehicleRepository.filterVehicles(
+        return vehicleRepository
+                .filterVehicles(
                         request.getLocation(),
                         request.getVehicleType(),
                         request.getFuelType(),
@@ -203,6 +217,7 @@ public class VehicleServiceImpl implements VehicleService {
                 .map(vehicleMapper::toResponse)
                 .toList();
     }
+
     @Override
     public Page<VehicleResponse> getAllVehicles(
             int page,
@@ -226,8 +241,14 @@ public class VehicleServiceImpl implements VehicleService {
     public List<VehicleResponse> searchVehicles(
             String location) {
 
+        if (location == null || location.trim().isEmpty()) {
+            return List.of();
+        }
+
         return vehicleRepository
-                .findByLocationIgnoreCase(location)
+                .findByLocationContainingIgnoreCase(
+                        location.trim()
+                )
                 .stream()
                 .map(vehicleMapper::toResponse)
                 .toList();

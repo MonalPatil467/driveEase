@@ -1,6 +1,6 @@
 package com.monal.driveEase.security;
 
-
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,6 +18,7 @@ import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JWTAuthenticationFilter extends OncePerRequestFilter {
+
     private final JwtService jwtService;
     private final CustomUserDetailsService userDetailsService;
 
@@ -36,29 +37,37 @@ public class JWTAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
 
-        String email = jwtService.extractUsername(token);
+        try {
 
-        if (email != null &&
-                SecurityContextHolder.getContext().getAuthentication() == null) {
+            String email = jwtService.extractUsername(token);
 
-            UserDetails userDetails =
-                    userDetailsService.loadUserByUsername(email);
+            if (email != null &&
+                    SecurityContextHolder.getContext().getAuthentication() == null) {
 
-            if (jwtService.isTokenValid(token, userDetails)) {
+                UserDetails userDetails =
+                        userDetailsService.loadUserByUsername(email);
 
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null,
-                                userDetails.getAuthorities());
+                if (jwtService.isTokenValid(token, userDetails)) {
 
-                authentication.setDetails(
-                        new WebAuthenticationDetailsSource()
-                                .buildDetails(request));
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    userDetails,
+                                    null,
+                                    userDetails.getAuthorities());
 
-                SecurityContextHolder.getContext()
-                        .setAuthentication(authentication);
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource()
+                                    .buildDetails(request));
+
+                    SecurityContextHolder.getContext()
+                            .setAuthentication(authentication);
+                }
             }
+
+        } catch (JwtException | IllegalArgumentException ex) {
+
+
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);

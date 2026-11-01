@@ -94,7 +94,7 @@ public class VehicleController {
     @GetMapping
     public ResponseEntity<Page<VehicleResponse>> getAllVehicles(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "5") int size,
+            @RequestParam(defaultValue = "100") int size,
             @RequestParam(defaultValue = "brand") String sortBy,
             @RequestParam(defaultValue = "asc") String direction) {
 

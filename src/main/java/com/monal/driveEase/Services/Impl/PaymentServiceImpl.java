@@ -15,9 +15,10 @@ import com.monal.driveEase.exception.BadRequestException;
 import com.monal.driveEase.exception.ResourceNotFoundException;
 import com.monal.driveEase.mappers.PaymentMapper;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
-import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -33,98 +34,82 @@ public class PaymentServiceImpl implements PaymentService {
     private final UserRepository userRepository;
     private final PaymentMapper paymentMapper;
 
+    @Value("${stripe.checkout.success-url}")
+    private String successUrl;
+
+    @Value("${stripe.checkout.cancel-url}")
+    private String cancelUrl;
+
     @Override
     public PaymentResponse makePayment(PaymentRequest request) {
 
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException(
-                    "Only customers can make payments."
-            );
+            throw new BadRequestException("Only customers can make payments.");
         }
 
-        Booking booking = bookingRepository
-                .findById(request.getBookingId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Booking not found"
-                        )
-                );
+        Booking booking = bookingRepository.findById(request.getBookingId())
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        if (!booking.getCustomer()
-                .getId()
-                .equals(customer.getId())) {
-
-            throw new BadRequestException(
-                    "You can only pay for your own booking."
-            );
+        if (!booking.getCustomer().getId().equals(customer.getId())) {
+            throw new BadRequestException("You can only pay for your own booking.");
         }
 
         if (booking.getPayment() != null) {
-            throw new BadRequestException(
-                    "Payment already exists for this booking."
-            );
+            throw new BadRequestException("Payment already exists for this booking.");
         }
 
         try {
 
-            long amountInPaise =
-                    Math.round(
-                            booking.getTotalAmount() * 100
-                    );
+            // Backend calculates the amount — never trust the frontend.
+            long amountInPaise = Math.round(booking.getTotalAmount() * 100);
 
-            PaymentIntentCreateParams params =
-                    PaymentIntentCreateParams.builder()
-                            .setAmount(amountInPaise)
-                            .setCurrency("inr")
-                            .setDescription(
-                                    "DriveEase booking payment - Booking ID: "
-                                            + booking.getId()
-                            )
-                            .putMetadata(
-                                    "bookingId",
-                                    booking.getId().toString()
-                            )
-                            .putMetadata(
-                                    "customerId",
-                                    customer.getId().toString()
-                            )
-                            .build();
+            String resolvedSuccessUrl = successUrl.replace("{bookingId}", booking.getId().toString());
 
-            PaymentIntent paymentIntent =
-                    PaymentIntent.create(params);
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl(resolvedSuccessUrl)
+                    .setCancelUrl(cancelUrl)
+                    .putMetadata("bookingId", booking.getId().toString())
+                    .putMetadata("customerId", customer.getId().toString())
+                    .addLineItem(
+                            SessionCreateParams.LineItem.builder()
+                                    .setQuantity(1L)
+                                    .setPriceData(
+                                            SessionCreateParams.LineItem.PriceData.builder()
+                                                    .setCurrency("inr")
+                                                    .setUnitAmount(amountInPaise)
+                                                    .setProductData(
+                                                            SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                                                    .setName("DriveEase booking #" + booking.getId())
+                                                                    .build()
+                                                    )
+                                                    .build()
+                                    )
+                                    .build()
+                    )
+                    .build();
+
+            Session session = Session.create(params);
 
             Payment payment = Payment.builder()
-                    .transactionId(paymentIntent.getId())
+                    .transactionId(session.getId())   // maps webhook events back to this Payment
                     .amount(booking.getTotalAmount())
                     .paymentMethod(request.getPaymentMethod())
                     .paymentStatus(PaymentStatus.PENDING)
                     .booking(booking)
                     .build();
 
-            Payment savedPayment =
-                    paymentRepository.save(payment);
+            Payment savedPayment = paymentRepository.save(payment);
 
-            PaymentResponse response =
-                    paymentMapper.toResponse(savedPayment);
-
-            response.setStripePaymentIntentId(
-                    paymentIntent.getId()
-            );
-
-            response.setClientSecret(
-                    paymentIntent.getClientSecret()
-            );
+            PaymentResponse response = paymentMapper.toResponse(savedPayment);
+            response.setCheckoutUrl(session.getUrl());
 
             return response;
 
         } catch (StripeException e) {
-
-            throw new BadRequestException(
-                    "Unable to create Stripe payment: "
-                            + e.getMessage()
-            );
+            throw new BadRequestException("Unable to create Stripe checkout session: " + e.getMessage());
         }
     }
 
@@ -133,30 +118,19 @@ public class PaymentServiceImpl implements PaymentService {
 
         User currentUser = getAuthenticatedUser();
 
-        Payment payment = paymentRepository
-                .findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Payment not found"
-                        )
-                );
+        Payment payment = paymentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment not found"));
 
         if (currentUser.getRole() == Role.ADMIN) {
             return paymentMapper.toResponse(payment);
         }
 
         if (currentUser.getRole() == Role.CUSTOMER
-                && payment.getBooking()
-                .getCustomer()
-                .getId()
-                .equals(currentUser.getId())) {
-
+                && payment.getBooking().getCustomer().getId().equals(currentUser.getId())) {
             return paymentMapper.toResponse(payment);
         }
 
-        throw new BadRequestException(
-                "You are not authorized to view this payment."
-        );
+        throw new BadRequestException("You are not authorized to view this payment.");
     }
 
     @Override
@@ -165,13 +139,10 @@ public class PaymentServiceImpl implements PaymentService {
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException(
-                    "Only customers can view payments."
-            );
+            throw new BadRequestException("Only customers can view payments.");
         }
 
-        return paymentRepository
-                .findByBookingCustomerId(customer.getId())
+        return paymentRepository.findByBookingCustomerId(customer.getId())
                 .stream()
                 .map(paymentMapper::toResponse)
                 .toList();
@@ -179,27 +150,15 @@ public class PaymentServiceImpl implements PaymentService {
 
     private User getAuthenticatedUser() {
 
-        Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
-
-            throw new BadRequestException(
-                    "User is not authenticated."
-            );
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BadRequestException("User is not authenticated.");
         }
 
         String email = authentication.getName();
 
-        return userRepository
-                .findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Authenticated user not found"
-                        )
-                );
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
     }
 }

@@ -34,6 +34,7 @@ AND (:maxPrice IS NULL OR v.pricePerDay<=:maxPrice)
             @Param("maxPrice") Double maxPrice
     );
 
+    List<Vehicle> findByLocationContainingIgnoreCase(String location);
 
     List<Vehicle> findByOwnerId(Long id);
 }

@@ -1,25 +1,28 @@
 package com.monal.driveEase.Controller;
 
-
+import com.monal.driveEase.Entities.Booking;
 import com.monal.driveEase.Entities.Payment;
+import com.monal.driveEase.Repositories.BookingRepository;
 import com.monal.driveEase.Repositories.PaymentRepository;
+import com.monal.driveEase.enums.BookingStatus;
 import com.monal.driveEase.enums.PaymentStatus;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
-import com.stripe.model.PaymentIntent;
+import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/payments")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:4200")
 public class PaymentWebhookController {
 
     private final PaymentRepository paymentRepository;
+    private final BookingRepository bookingRepository;
 
     @Value("${stripe.webhook.secret}")
     private String webhookSecret;
@@ -27,99 +30,90 @@ public class PaymentWebhookController {
     @PostMapping("/webhook")
     public ResponseEntity<String> handleWebhook(
             @RequestBody String payload,
-            @RequestHeader("Stripe-Signature") String sigHeader
-    ) {
+            @RequestHeader("Stripe-Signature") String sigHeader) {
 
         Event event;
 
         try {
-            event = Webhook.constructEvent(
-                    payload,
-                    sigHeader,
-                    webhookSecret
-            );
-
+            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         } catch (SignatureVerificationException e) {
-
-            return ResponseEntity
-                    .badRequest()
-                    .body("Invalid Stripe signature");
+            return ResponseEntity.badRequest().body("Invalid Stripe signature");
         }
 
         switch (event.getType()) {
 
-            case "payment_intent.succeeded":
-
-                PaymentIntent succeededIntent =
-                        (PaymentIntent) event
-                                .getDataObjectDeserializer()
-                                .getObject()
-                                .orElse(null);
-
-                if (succeededIntent != null) {
-                    handlePaymentSuccess(succeededIntent);
+            case "checkout.session.completed" -> {
+                Session session = (Session) event.getDataObjectDeserializer()
+                        .getObject().orElse(null);
+                if (session != null) {
+                    handleCheckoutCompleted(session);
                 }
+            }
 
-                break;
-
-            case "payment_intent.payment_failed":
-
-                PaymentIntent failedIntent =
-                        (PaymentIntent) event
-                                .getDataObjectDeserializer()
-                                .getObject()
-                                .orElse(null);
-
-                if (failedIntent != null) {
-                    handlePaymentFailure(failedIntent);
+            case "checkout.session.expired" -> {
+                Session session = (Session) event.getDataObjectDeserializer()
+                        .getObject().orElse(null);
+                if (session != null) {
+                    handleCheckoutExpired(session);
                 }
+            }
 
-                break;
-
-            default:
-
-                break;
+            default -> { /* ignore other event types */ }
         }
 
         return ResponseEntity.ok("Webhook received");
     }
 
-    private void handlePaymentSuccess(
-            PaymentIntent paymentIntent
-    ) {
+    @Transactional
+    protected void handleCheckoutCompleted(Session session) {
 
         Payment payment = paymentRepository
-                .findByTransactionId(paymentIntent.getId())
+                .findByTransactionId(session.getId())
+                .orElse(null);
+
+        if (payment == null) {
+            return; // unknown session — nothing to reconcile
+        }
+
+        // Idempotency guard: Stripe may deliver this event more than once.
+        if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
+            return;
+        }
+
+        // Defense in depth: only confirm if Stripe itself says it was paid.
+        if (!"paid".equals(session.getPaymentStatus())) {
+            return;
+        }
+
+        payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        paymentRepository.save(payment);
+
+        Booking booking = payment.getBooking();
+
+        if (booking.getBookingStatus() == BookingStatus.PENDING) {
+            booking.setBookingStatus(BookingStatus.CONFIRMED);
+            bookingRepository.save(booking);
+        }
+    }
+
+    @Transactional
+    protected void handleCheckoutExpired(Session session) {
+
+        Payment payment = paymentRepository
+                .findByTransactionId(session.getId())
                 .orElse(null);
 
         if (payment == null) {
             return;
         }
-
 
         if (payment.getPaymentStatus() == PaymentStatus.SUCCESS) {
             return;
         }
 
-        payment.setPaymentStatus(PaymentStatus.SUCCESS);
-
-        paymentRepository.save(payment);
-    }
-
-    private void handlePaymentFailure(
-            PaymentIntent paymentIntent
-    ) {
-
-        Payment payment = paymentRepository
-                .findByTransactionId(paymentIntent.getId())
-                .orElse(null);
-
-        if (payment == null) {
-            return;
-        }
-
         payment.setPaymentStatus(PaymentStatus.FAILED);
-
         paymentRepository.save(payment);
+
+
     }
 }

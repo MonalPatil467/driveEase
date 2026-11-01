@@ -22,6 +22,8 @@ public class PaymentResponse {
 
  private PaymentStatus paymentStatus;
 
+ private String checkoutUrl;
+
  private Long bookingId;
 
  // Stripe PaymentIntent ID

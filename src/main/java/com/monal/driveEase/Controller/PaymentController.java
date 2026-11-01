@@ -35,17 +35,13 @@ public class PaymentController {
     public ResponseEntity<PaymentResponse> getPaymentById(
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                paymentService.getPaymentById(id)
-        );
+        return ResponseEntity.ok(paymentService.getPaymentById(id));
     }
 
     @GetMapping("/my-payments")
     @PreAuthorize("hasRole('CUSTOMER')")
     public ResponseEntity<List<PaymentResponse>> getMyPayments() {
 
-        return ResponseEntity.ok(
-                paymentService.getMyPayments()
-        );
+        return ResponseEntity.ok(paymentService.getMyPayments());
     }
 }

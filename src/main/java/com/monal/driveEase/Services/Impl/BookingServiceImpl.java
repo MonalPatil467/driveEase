@@ -37,24 +37,19 @@ public class BookingServiceImpl implements BookingService {
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException(
-                    "Only customers can book vehicles."
-            );
+            throw new BadRequestException("Only customers can book vehicles.");
         }
 
         Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Vehicle not found")
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
 
         if (request.getPickupDate().isAfter(request.getReturnDate())) {
-            throw new BadRequestException(
-                    "Pickup date cannot be after return date."
-            );
+            throw new BadRequestException("Pickup date cannot be after return date.");
         }
 
         List<Booking> existingBookings =
                 bookingRepository.findByVehicleId(vehicle.getId());
+
 
         for (Booking booking : existingBookings) {
 
@@ -62,23 +57,15 @@ public class BookingServiceImpl implements BookingService {
                     !(request.getReturnDate().isBefore(booking.getPickupDate())
                             || request.getPickupDate().isAfter(booking.getReturnDate()));
 
-            if (overlap
-                    && booking.getBookingStatus() != BookingStatus.CANCELLED) {
-
-                throw new BadRequestException(
-                        "Vehicle is already booked for these dates."
-                );
+            if (overlap && booking.getBookingStatus() != BookingStatus.CANCELLED) {
+                throw new BadRequestException("Vehicle is already booked for these dates.");
             }
         }
 
         long totalDays =
-                ChronoUnit.DAYS.between(
-                        request.getPickupDate(),
-                        request.getReturnDate()
-                ) + 1;
+                ChronoUnit.DAYS.between(request.getPickupDate(), request.getReturnDate()) + 1;
 
-        double totalAmount =
-                totalDays * vehicle.getPricePerDay();
+        double totalAmount = totalDays * vehicle.getPricePerDay();
 
         Booking booking = Booking.builder()
                 .pickupDate(request.getPickupDate())
@@ -86,11 +73,10 @@ public class BookingServiceImpl implements BookingService {
                 .customer(customer)
                 .vehicle(vehicle)
                 .totalAmount(totalAmount)
-                .bookingStatus(BookingStatus.CONFIRMED)
+                .bookingStatus(BookingStatus.PENDING)   // <-- THE FIX
                 .build();
 
-        Booking savedBooking =
-                bookingRepository.save(booking);
+        Booking savedBooking = bookingRepository.save(booking);
 
         return bookingMapper.toResponse(savedBooking);
     }
@@ -101,24 +87,18 @@ public class BookingServiceImpl implements BookingService {
         User currentUser = getAuthenticatedUser();
 
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Booking not found")
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
         if (currentUser.getRole() == Role.ADMIN) {
             return bookingMapper.toResponse(booking);
         }
 
         if (currentUser.getRole() == Role.CUSTOMER
-                && booking.getCustomer().getId()
-                .equals(currentUser.getId())) {
-
+                && booking.getCustomer().getId().equals(currentUser.getId())) {
             return bookingMapper.toResponse(booking);
         }
 
-        throw new BadRequestException(
-                "You are not authorized to view this booking."
-        );
+        throw new BadRequestException("You are not authorized to view this booking.");
     }
 
     @Override
@@ -127,17 +107,12 @@ public class BookingServiceImpl implements BookingService {
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException(
-                    "Only customers can view their bookings."
-            );
+            throw new BadRequestException("Only customers can view their bookings.");
         }
 
-        List<Booking> bookings =
-                bookingRepository.findByCustomerId(customer.getId());
+        List<Booking> bookings = bookingRepository.findByCustomerId(customer.getId());
 
-        return bookings.stream()
-                .map(bookingMapper::toResponse)
-                .toList();
+        return bookings.stream().map(bookingMapper::toResponse).toList();
     }
 
     @Override
@@ -146,15 +121,10 @@ public class BookingServiceImpl implements BookingService {
         User admin = getAuthenticatedUser();
 
         if (admin.getRole() != Role.ADMIN) {
-            throw new BadRequestException(
-                    "Only admin can view all bookings."
-            );
+            throw new BadRequestException("Only admin can view all bookings.");
         }
 
-        return bookingRepository.findAll()
-                .stream()
-                .map(bookingMapper::toResponse)
-                .toList();
+        return bookingRepository.findAll().stream().map(bookingMapper::toResponse).toList();
     }
 
     @Override
@@ -163,34 +133,23 @@ public class BookingServiceImpl implements BookingService {
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException(
-                    "Only customers can cancel bookings."
-            );
+            throw new BadRequestException("Only customers can cancel bookings.");
         }
 
         Booking booking = bookingRepository.findById(bookingId)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException("Booking not found")
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Booking not found"));
 
-        if (!booking.getCustomer().getId()
-                .equals(customer.getId())) {
-
-            throw new BadRequestException(
-                    "You can only cancel your own bookings."
-            );
+        if (!booking.getCustomer().getId().equals(customer.getId())) {
+            throw new BadRequestException("You can only cancel your own bookings.");
         }
 
         if (booking.getBookingStatus() == BookingStatus.CANCELLED) {
-            throw new BadRequestException(
-                    "Booking is already cancelled."
-            );
+            throw new BadRequestException("Booking is already cancelled.");
         }
 
         booking.setBookingStatus(BookingStatus.CANCELLED);
 
-        Booking cancelledBooking =
-                bookingRepository.save(booking);
+        Booking cancelledBooking = bookingRepository.save(booking);
 
         return bookingMapper.toResponse(cancelledBooking);
     }
@@ -198,25 +157,15 @@ public class BookingServiceImpl implements BookingService {
     private User getAuthenticatedUser() {
 
         Authentication authentication =
-                SecurityContextHolder
-                        .getContext()
-                        .getAuthentication();
+                SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null
-                || !authentication.isAuthenticated()) {
-
-            throw new BadRequestException(
-                    "User is not authenticated."
-            );
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new BadRequestException("User is not authenticated.");
         }
 
         String email = authentication.getName();
 
         return userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Authenticated user not found"
-                        )
-                );
+                .orElseThrow(() -> new ResourceNotFoundException("Authenticated user not found"));
     }
 }
