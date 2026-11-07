@@ -64,6 +64,8 @@ public class SecurityConfig {
 
                         .requestMatchers("/api/auth/**").permitAll()
 
+                        .requestMatchers("/api/payments/webhook").permitAll()
+                        .requestMatchers("/api/ai/**").permitAll()
 
                         .requestMatchers("/api/payments/webhook").permitAll()
 

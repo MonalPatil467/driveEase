@@ -5,7 +5,9 @@ import com.monal.driveEase.Entities.Vehicle;
 import com.monal.driveEase.enums.FuelType;
 import com.monal.driveEase.enums.Transmission;
 import com.monal.driveEase.enums.VehicleType;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -37,4 +39,10 @@ AND (:maxPrice IS NULL OR v.pricePerDay<=:maxPrice)
     List<Vehicle> findByLocationContainingIgnoreCase(String location);
 
     List<Vehicle> findByOwnerId(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT v FROM Vehicle v WHERE v.id = :vehicleId")
+    Optional<Vehicle> findByIdForUpdate(
+            @Param("vehicleId") Long vehicleId
+    );
 }

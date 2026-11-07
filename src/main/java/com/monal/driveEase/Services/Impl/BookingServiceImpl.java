@@ -21,6 +21,8 @@ import org.springframework.stereotype.Service;
 
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import org.springframework.transaction.annotation.Transactional;
+import java.time.LocalDate;
 
 @Service
 @RequiredArgsConstructor
@@ -31,41 +33,61 @@ public class BookingServiceImpl implements BookingService {
     private final VehicleRepository vehicleRepository;
     private final BookingMapper bookingMapper;
 
+
     @Override
+    @Transactional
     public BookingResponse createBooking(BookingRequest request) {
 
         User customer = getAuthenticatedUser();
 
         if (customer.getRole() != Role.CUSTOMER) {
-            throw new BadRequestException("Only customers can book vehicles.");
+            throw new BadRequestException(
+                    "Only customers can book vehicles."
+            );
         }
 
-        Vehicle vehicle = vehicleRepository.findById(request.getVehicleId())
-                .orElseThrow(() -> new ResourceNotFoundException("Vehicle not found"));
+        if (request.getPickupDate() == null
+                || request.getReturnDate() == null) {
+            throw new BadRequestException(
+                    "Pickup date and return date are required."
+            );
+        }
 
         if (request.getPickupDate().isAfter(request.getReturnDate())) {
-            throw new BadRequestException("Pickup date cannot be after return date.");
+            throw new BadRequestException(
+                    "Pickup date cannot be after return date."
+            );
         }
 
-        List<Booking> existingBookings =
-                bookingRepository.findByVehicleId(vehicle.getId());
 
+        Vehicle vehicle = vehicleRepository.findByIdForUpdate(
+                        request.getVehicleId()
+                )
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Vehicle not found")
+                );
 
-        for (Booking booking : existingBookings) {
+        long overlappingBookings =
+                bookingRepository.countOverlappingBookings(
+                        vehicle.getId(),
+                        request.getPickupDate(),
+                        request.getReturnDate(),
+                        BookingStatus.CANCELLED
+                );
 
-            boolean overlap =
-                    !(request.getReturnDate().isBefore(booking.getPickupDate())
-                            || request.getPickupDate().isAfter(booking.getReturnDate()));
-
-            if (overlap && booking.getBookingStatus() != BookingStatus.CANCELLED) {
-                throw new BadRequestException("Vehicle is already booked for these dates.");
-            }
+        if (overlappingBookings > 0) {
+            throw new BadRequestException(
+                    "Vehicle is already booked for these dates."
+            );
         }
 
-        long totalDays =
-                ChronoUnit.DAYS.between(request.getPickupDate(), request.getReturnDate()) + 1;
+        long totalDays = ChronoUnit.DAYS.between(
+                request.getPickupDate(),
+                request.getReturnDate()
+        ) + 1;
 
         double totalAmount = totalDays * vehicle.getPricePerDay();
+
 
         Booking booking = Booking.builder()
                 .pickupDate(request.getPickupDate())
@@ -73,8 +95,9 @@ public class BookingServiceImpl implements BookingService {
                 .customer(customer)
                 .vehicle(vehicle)
                 .totalAmount(totalAmount)
-                .bookingStatus(BookingStatus.PENDING)   // <-- THE FIX
+                .bookingStatus(BookingStatus.PENDING)
                 .build();
+
 
         Booking savedBooking = bookingRepository.save(booking);
 

@@ -41,7 +41,7 @@ public class ReviewSummaryService {
         List<Review> reviews = new ArrayList<>(reviewRepository.findByVehicleId(vehicleId));
         reviews.sort(Comparator.comparing(Review::getId));
 
-        // Average comes from the real numbers, not from the AI
+
         Double average = reviews.stream()
                 .filter(r -> r.getRating() != null)
                 .mapToInt(Review::getRating)
